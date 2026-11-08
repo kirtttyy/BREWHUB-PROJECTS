@@ -50,7 +50,10 @@
         <div class="qr-box">
           <p class="text-sm muted" style="margin:0">${store.name}</p>
           <div class="code-big">${order.code}</div>
-          ${status === 'waiting_payment' ? UI.makeQr('BREWHUB:' + order.code, 200) : ''}
+          ${['waiting_payment', 'preparing', 'ready'].includes(status) ? `
+            ${UI.makeQr('BREWHUB:' + order.code, 220)}
+            <p class="text-xs muted mt-2">Show this QR to the cashier to scan</p>
+          ` : ''}
           ${order.queueNumber ? `<p class="font-bold mt-2">Queue #${order.queueNumber}</p>` : ''}
           ${order.estimatedReadyAt && status === 'preparing' ? `<p class="text-sm muted">Ready around ${new Date(order.estimatedReadyAt).toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit' })}</p>` : ''}
         </div>

@@ -85,39 +85,65 @@ const UI = {
       .join('')}</div></nav>`
   },
 
+  shellSidebar({ homeHref, role, active, links }) {
+    return `
+      <aside class="sidebar">
+        <div class="sidebar-top">
+          <a class="sidebar-brand" href="${BH.path(homeHref)}">
+            <span class="brand-mark">${this.svg('coffee')}</span>
+            <span>
+              <strong>BrewHub</strong>
+              <small>${role}</small>
+            </span>
+          </a>
+          <nav class="sidebar-nav">
+            ${links
+              .map(
+                (l) =>
+                  `<a class="sidebar-link ${active === l.id ? 'active' : ''}" href="${BH.path(l.href)}"><span class="sidebar-ico">${this.svg(l.icon)}</span><span>${l.label}</span></a>`
+              )
+              .join('')}
+          </nav>
+        </div>
+        <div class="sidebar-foot">
+          <button class="btn btn-outline w-full sidebar-out" id="signOutBtn" type="button">Sign out</button>
+        </div>
+      </aside>
+      <nav class="shell-mobile-nav" aria-label="Admin">
+        ${links
+          .map(
+            (l) =>
+              `<a class="${active === l.id ? 'active' : ''}" href="${BH.path(l.href)}">${this.svg(l.icon)}<span>${l.label}</span></a>`
+          )
+          .join('')}
+      </nav>`
+  },
+
   cashierSidebar(active) {
-    const links = [
-      { id: 'home', href: 'cashier/index.html', icon: 'home', label: 'Dashboard' },
-      { id: 'scan', href: 'cashier/scan.html', icon: 'scan', label: 'Scan' },
-      { id: 'orders', href: 'cashier/orders.html', icon: 'list', label: 'Orders' },
-      { id: 'settings', href: 'cashier/settings.html', icon: 'settings', label: 'Settings' },
-    ]
-    return `<aside class="sidebar">
-      <div style="padding:0.4rem 0.8rem 1rem">${this.brandHtml().replace('index.html', 'cashier/index.html')}</div>
-      ${links
-        .map((l) => `<a class="${active === l.id ? 'active' : ''}" href="${BH.path(l.href)}">${this.svg(l.icon)} ${l.label}</a>`)
-        .join('')}
-      <div style="margin-top:auto;padding:0.8rem">
-        <button class="btn btn-outline w-full" id="signOutBtn" style="border-color:rgba(255,255,255,.2);color:white">Sign out</button>
-      </div>
-    </aside>`
+    return this.shellSidebar({
+      homeHref: 'cashier/index.html',
+      role: 'Cashier',
+      active,
+      links: [
+        { id: 'home', href: 'cashier/index.html', icon: 'home', label: 'Dashboard' },
+        { id: 'scan', href: 'cashier/scan.html', icon: 'scan', label: 'Scan' },
+        { id: 'orders', href: 'cashier/orders.html', icon: 'list', label: 'Orders' },
+        { id: 'settings', href: 'cashier/settings.html', icon: 'settings', label: 'Settings' },
+      ],
+    })
   },
 
   adminSidebar(active) {
-    const links = [
-      { id: 'home', href: 'admin/index.html', icon: 'home', label: 'Overview' },
-      { id: 'shops', href: 'admin/shops.html', icon: 'store', label: 'Shops' },
-      { id: 'users', href: 'admin/users.html', icon: 'user', label: 'Users' },
-    ]
-    return `<aside class="sidebar">
-      <div style="padding:0.4rem 0.8rem 1rem">${this.brandHtml().replace('index.html', 'admin/index.html')}</div>
-      ${links
-        .map((l) => `<a class="${active === l.id ? 'active' : ''}" href="${BH.path(l.href)}">${this.svg(l.icon)} ${l.label}</a>`)
-        .join('')}
-      <div style="margin-top:auto;padding:0.8rem">
-        <button class="btn btn-outline w-full" id="signOutBtn" style="border-color:rgba(255,255,255,.2);color:white">Sign out</button>
-      </div>
-    </aside>`
+    return this.shellSidebar({
+      homeHref: 'admin/index.html',
+      role: 'Admin',
+      active,
+      links: [
+        { id: 'home', href: 'admin/index.html', icon: 'home', label: 'Overview' },
+        { id: 'shops', href: 'admin/shops.html', icon: 'store', label: 'Shops' },
+        { id: 'users', href: 'admin/users.html', icon: 'user', label: 'Users' },
+      ],
+    })
   },
 
   statusLabel(status) {

@@ -30,13 +30,32 @@
       const orders = BH.db.orders
       const activeOrders = orders.filter((o) => ['waiting_payment', 'preparing', 'ready'].includes(BH.effectiveStatus(o))).length
 
+      const canSave = await BH.canSaveToDbFile()
+
       document.getElementById('root').innerHTML = `
         <div class="cashier-top">
           <div>
-            <h1 class="font-serif" style="margin:0;font-size:2rem">Platform overview</h1>
-            <p class="muted text-sm" style="margin:.2rem 0 0">Approve shops and keep BrewHub tidy.</p>
+            <h1 class="font-serif" style="margin:0;font-size:clamp(1.7rem,3vw,2.1rem)">Platform overview</h1>
+            <p class="muted text-sm" style="margin:.35rem 0 0">Approve shops and keep BrewHub tidy.</p>
           </div>
-          <a class="btn btn-primary" href="shops.html">${UI.svg('store')} Review shops</a>
+          <div class="flex gap-2" style="flex-wrap:wrap">
+            <button class="btn btn-outline" id="saveDbBtn" type="button">Save to db.json</button>
+            <a class="btn btn-primary" href="shops.html">${UI.svg('store')} Review shops</a>
+          </div>
+        </div>
+
+        <div class="admin-panel mb-4">
+          <div class="admin-panel-head">
+            <div>
+              <div class="font-bold">Save local data to JSON</div>
+              <div class="text-sm muted" id="saveDbHint">${
+                canSave
+                  ? 'Writes your current localStorage data into data/db.json on this computer.'
+                  : 'Open the app with node server.js (http://127.0.0.1:5501). Live Server cannot write files.'
+              }</div>
+            </div>
+            <span class="badge ${canSave ? 'badge-approved' : 'badge-pending'}">${canSave ? 'Server ready' : 'Server needed'}</span>
+          </div>
         </div>
 
         <div class="stat-grid mb-4">
@@ -46,8 +65,8 @@
           <div class="stat"><div class="label">Active orders</div><div class="value">${activeOrders}</div></div>
         </div>
 
-        <div class="card mb-4" style="padding:0;overflow:hidden">
-          <div class="flex-between" style="padding:1rem 1.1rem;border-bottom:1px solid var(--border)">
+        <div class="admin-panel mb-4">
+          <div class="admin-panel-head">
             <div>
               <div class="font-bold">Awaiting approval</div>
               <div class="text-sm muted">New shops stay hidden until you approve them.</div>
@@ -55,7 +74,7 @@
             <span class="text-sm muted">${owners} shop owners</span>
           </div>
           ${pending.length === 0
-            ? `<p class="muted text-sm" style="padding:1.1rem">No shops waiting right now.</p>`
+            ? `<p class="muted text-sm admin-empty">No shops waiting right now.</p>`
             : pending.map((s) => `
               <div class="admin-row shops">
                 <img class="admin-thumb" src="${s.image}" alt="" />
@@ -73,14 +92,28 @@
             `).join('')}
         </div>
 
-        <a class="card" style="display:flex;justify-content:space-between;align-items:center;padding:1.1rem" href="users.html">
+        <a class="admin-link-card" href="users.html">
           <div>
             <div class="font-bold">Browse users</div>
-            <div class="text-sm muted">Customers, cashiers, and admins on the demo platform.</div>
+            <div class="text-sm muted">Customers, cashiers, and admins on the platform.</div>
           </div>
           <span>${UI.svg('arrow')}</span>
         </a>
       `
+
+      document.getElementById('saveDbBtn').onclick = async () => {
+        const btn = document.getElementById('saveDbBtn')
+        btn.disabled = true
+        try {
+          await BH.saveToDbFile()
+          UI.toast('Saved to data/db.json')
+          document.getElementById('saveDbHint').textContent = `Saved just now · data/db.json`
+        } catch (err) {
+          UI.toast(err.message)
+        } finally {
+          btn.disabled = false
+        }
+      }
 
       document.querySelectorAll('[data-approve]').forEach((btn) => {
         btn.onclick = () => {

@@ -28,12 +28,12 @@
       document.getElementById('root').innerHTML = `
         <div class="cashier-top">
           <div>
-            <h1 class="font-serif" style="margin:0;font-size:2rem">Users</h1>
-            <p class="muted text-sm" style="margin:.2rem 0 0">${users.length} accounts on the platform.</p>
+            <h1 class="font-serif" style="margin:0;font-size:clamp(1.7rem,3vw,2.1rem)">Users</h1>
+            <p class="muted text-sm" style="margin:.35rem 0 0">${users.length} accounts on the platform.</p>
           </div>
         </div>
 
-        <div class="card" style="padding:0;overflow:hidden">
+        <div class="admin-panel">
           ${users.map((u) => {
             const shops = BH.db.stores.filter((s) => s.ownerId === u.id)
             const extra = u.role === 'store_owner'
@@ -47,7 +47,7 @@
                   <div class="font-bold">${u.name}</div>
                   <div class="text-sm muted">${u.phone || '—'}</div>
                 </div>
-                <div class="text-sm">${u.email}</div>
+                <div class="text-sm">${u.email || '—'}</div>
                 <span class="badge badge-soft">${roleLabel[u.role] || u.role}</span>
                 <div class="text-sm muted">${extra}</div>
               </div>

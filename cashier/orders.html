@@ -19,12 +19,13 @@
       await BH.init()
       const user = UI.requireUser(['store_owner'])
       if (!user) return
-      const store = BH.storeOfOwner(user.id)
+      const stores = BH.storesOfOwner(user.id)
+      const storeIds = new Set(stores.map((s) => s.id))
       document.getElementById('sidebar').innerHTML = UI.cashierSidebar('orders')
       document.getElementById('signOutBtn').onclick = () => { BH.signOut(); location.href = '../index.html' }
 
       const orders = BH.db.orders
-        .filter((o) => o.storeId === store.id)
+        .filter((o) => storeIds.has(o.storeId))
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
 
       const groups = [
@@ -38,7 +39,7 @@
         <div class="cashier-top">
           <div>
             <h1 class="font-serif" style="margin:0;font-size:2rem">Orders</h1>
-            <p class="muted text-sm" style="margin:.2rem 0 0">${store.name}</p>
+            <p class="muted text-sm" style="margin:.2rem 0 0">${stores.map((s) => s.name).join(' · ') || 'Your shops'}</p>
           </div>
         </div>
         ${groups.map((g) => {
@@ -55,7 +56,7 @@
               return `<a class="card" style="display:flex;justify-content:space-between;align-items:center;padding:1rem;margin-bottom:.55rem" href="scan.html?code=${o.code}">
                 <div>
                   <div class="font-bold">${o.code}${o.queueNumber ? ` · #${o.queueNumber}` : ''}</div>
-                  <div class="text-sm muted">${o.customerName} · ${UI.peso(o.total)}</div>
+                  <div class="text-sm muted">${BH.storeById(o.storeId)?.name || 'Shop'} · ${o.customerName} · ${UI.peso(o.total)}</div>
                 </div>
                 <span class="status-pill status-${status}">${UI.statusLabel(status)}</span>
               </a>`

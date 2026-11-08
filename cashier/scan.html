@@ -12,63 +12,122 @@
     <main class="cashier-main">
       <div class="cashier-top">
         <div>
-          <h1 class="font-serif" style="margin:0;font-size:2rem">Scan QR</h1>
-          <p class="muted text-sm" style="margin:.2rem 0 0">Scan or type the customer’s order code.</p>
+          <h1 class="font-serif" style="margin:0;font-size:clamp(1.7rem,3vw,2.1rem)">Scan QR</h1>
+          <p class="muted text-sm" style="margin:.35rem 0 0">Scan the customer’s order QR, or type the code.</p>
         </div>
       </div>
-      <div class="scan-panel">
+
+      <div class="scan-panel mb-4">
+        <div class="scan-camera" id="reader"></div>
+        <div class="flex gap-2 mt-3" style="flex-wrap:wrap">
+          <button class="btn btn-primary" id="startCam" type="button">Start camera</button>
+          <button class="btn btn-outline" id="stopCam" type="button">Stop camera</button>
+        </div>
+        <p class="text-xs muted mt-2" id="camHint">Allow camera access to scan the QR from the customer’s order screen.</p>
+
+        <hr style="border:none;border-top:1px solid var(--border);margin:1.1rem 0" />
+
         <div class="field">
           <label for="code">Order code</label>
-          <input class="input" id="code" placeholder="Order or voucher code" autocomplete="off" />
+          <input class="input" id="code" placeholder="BH-4821 or BREWHUB:BH-4821" autocomplete="off" />
         </div>
         <div class="flex gap-2 mt-3">
-          <button class="btn btn-primary" id="lookup">Find order</button>
-          <button class="btn btn-outline" id="clear">Clear</button>
+          <button class="btn btn-primary" id="lookup" type="button">Find order</button>
+          <button class="btn btn-outline" id="clear" type="button">Clear</button>
         </div>
-        <p class="text-xs muted mt-2">Tip: customer QR values look like BREWHUB:BH-4821</p>
       </div>
+
       <div id="result"></div>
     </main>
   </div>
 
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="../js/db.js"></script>
   <script src="../js/ui.js"></script>
   <script>
-    let user, store, current = null
+    let user, current = null, scanner = null, lastScan = '', scanLock = false
 
     async function boot() {
       await BH.init()
       user = UI.requireUser(['store_owner'])
       if (!user) return
-      store = BH.storeOfOwner(user.id)
       document.getElementById('sidebar').innerHTML = UI.cashierSidebar('scan')
-      document.getElementById('signOutBtn').onclick = () => { BH.signOut(); location.href = '../index.html' }
-
-      const preset = UI.qs('code')
-      if (preset) {
-        document.getElementById('code').value = preset
-        lookup()
+      document.getElementById('signOutBtn').onclick = async () => {
+        await stopCamera()
+        BH.signOut()
+        location.href = '../index.html'
       }
 
-      document.getElementById('lookup').onclick = lookup
+      document.getElementById('startCam').innerHTML = `${UI.svg('scan')} Start camera`
+      document.getElementById('startCam').onclick = startCamera
+      document.getElementById('stopCam').onclick = stopCamera
+      document.getElementById('lookup').onclick = () => lookup(document.getElementById('code').value)
       document.getElementById('clear').onclick = () => {
         document.getElementById('code').value = ''
         document.getElementById('result').innerHTML = ''
         current = null
       }
       document.getElementById('code').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') lookup()
+        if (e.key === 'Enter') lookup(document.getElementById('code').value)
       })
+
+      const preset = UI.qs('code')
+      if (preset) {
+        document.getElementById('code').value = preset
+        lookup(preset)
+      } else {
+        startCamera()
+      }
     }
 
-    function lookup() {
-      const raw = document.getElementById('code').value
+    async function startCamera() {
+      const hint = document.getElementById('camHint')
+      if (!window.Html5Qrcode) {
+        hint.textContent = 'Scanner library didn’t load. Use the order code box below.'
+        return
+      }
+      try {
+        await stopCamera()
+        scanner = new Html5Qrcode('reader')
+        await scanner.start(
+          { facingMode: 'environment' },
+          { fps: 10, qrbox: { width: 220, height: 220 } },
+          onScanSuccess,
+          () => {}
+        )
+        hint.textContent = 'Point the camera at the customer’s order QR.'
+      } catch (err) {
+        hint.textContent = 'Camera unavailable. Type the order code instead (e.g. BH-4821).'
+        UI.toast('Couldn’t open the camera. You can still type the code.')
+      }
+    }
+
+    async function stopCamera() {
+      if (!scanner) return
+      try { await scanner.stop() } catch (_) {}
+      try { await scanner.clear() } catch (_) {}
+      scanner = null
+    }
+
+    async function onScanSuccess(decoded) {
+      const code = String(decoded || '').trim()
+      if (!code || scanLock) return
+      if (code === lastScan) return
+      lastScan = code
+      scanLock = true
+      document.getElementById('code').value = code
+      lookup(code)
+      UI.toast('QR scanned')
+      setTimeout(() => { scanLock = false }, 1500)
+    }
+
+    function lookup(raw) {
       const order = BH.findOrder(raw)
       if (!order) {
         document.getElementById('result').innerHTML = `<div class="order-panel error-box">We couldn’t find that order code.</div>`
         return
       }
-      if (order.storeId !== store.id) {
+      if (!BH.ownsStore(user.id, order.storeId)) {
         document.getElementById('result').innerHTML = `<div class="order-panel error-box">That order belongs to another shop.</div>`
         return
       }
@@ -78,13 +137,16 @@
 
     function drawOrder() {
       const order = BH.db.orders.find((o) => o.id === current.id)
+      if (!order) return
       const status = BH.effectiveStatus(order)
+      const shop = BH.storeById(order.storeId)
+
       document.getElementById('result').innerHTML = `
         <div class="order-panel">
           <div class="flex-between mb-3">
             <div>
               <div class="code-big" style="font-size:1.4rem;margin:0">${order.code}</div>
-              <div class="text-sm muted">${order.customerName}</div>
+              <div class="text-sm muted">${order.customerName} · ${shop?.name || 'Shop'}</div>
             </div>
             <span class="status-pill status-${status}">${UI.statusLabel(status)}</span>
           </div>
@@ -108,8 +170,13 @@
 
       document.querySelectorAll('#result [data-to]').forEach((b) => b.addEventListener('click', () => {
         try {
-          BH.advanceOrder(store.id, order.id, b.dataset.to, b.dataset.pay || 'cash')
-          UI.toast(b.dataset.to === 'preparing' ? 'Paid! Order is preparing.' : b.dataset.to === 'ready' ? 'Order is ready.' : b.dataset.to === 'claimed' ? 'Order claimed.' : 'Order cancelled.')
+          BH.advanceOrder(order.storeId, order.id, b.dataset.to, b.dataset.pay || 'cash')
+          UI.toast(
+            b.dataset.to === 'preparing' ? 'Paid! Order is preparing.'
+              : b.dataset.to === 'ready' ? 'Order is ready.'
+              : b.dataset.to === 'claimed' ? 'Order claimed.'
+              : 'Order cancelled.'
+          )
           drawOrder()
         } catch (err) {
           UI.toast(err.message)
@@ -118,6 +185,7 @@
       }))
     }
 
+    window.addEventListener('beforeunload', () => { stopCamera() })
     boot()
   </script>
 </body>

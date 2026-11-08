@@ -71,6 +71,40 @@ const BH = {
     URL.revokeObjectURL(url)
   },
 
+  apiUrl(pathname) {
+    // Same origin when using node server.js; Live Server has no write API.
+    return pathname
+  },
+
+  async canSaveToDbFile() {
+    try {
+      const res = await fetch(this.apiUrl('/api/health'), { cache: 'no-store' })
+      if (!res.ok) return false
+      const data = await res.json()
+      return !!data.save
+    } catch (_) {
+      return false
+    }
+  },
+
+  async saveToDbFile() {
+    this.save()
+    const res = await fetch(this.apiUrl('/api/save-db'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(this.db),
+    })
+    let data = null
+    try { data = await res.json() } catch (_) {}
+    if (!res.ok || !data?.ok) {
+      throw new Error(data?.error || 'Could not save to data/db.json. Run: node server.js then open http://127.0.0.1:5501')
+    }
+    // Keep seed in sync so reloads match the file you just wrote.
+    localStorage.setItem(SEED_KEY, JSON.stringify(this.db))
+    this.seed = structuredClone(this.db)
+    return data
+  },
+
   reset() {
     this.db = structuredClone(this.seed || this.readJson(SEED_KEY))
     this.save()
@@ -176,6 +210,14 @@ const BH = {
 
   storeOfOwner(ownerId) {
     return this.db.stores.find((s) => s.ownerId === ownerId)
+  },
+
+  storesOfOwner(ownerId) {
+    return this.db.stores.filter((s) => s.ownerId === ownerId)
+  },
+
+  ownsStore(ownerId, storeId) {
+    return this.db.stores.some((s) => s.ownerId === ownerId && s.id === storeId)
   },
 
   productsOf(storeId) {

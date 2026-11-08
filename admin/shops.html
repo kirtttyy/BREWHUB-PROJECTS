@@ -35,21 +35,21 @@
       document.getElementById('root').innerHTML = `
         <div class="cashier-top">
           <div>
-            <h1 class="font-serif" style="margin:0;font-size:2rem">Coffee shops</h1>
-            <p class="muted text-sm" style="margin:.2rem 0 0">Approve new shops or suspend ones that shouldn’t stay live.</p>
+            <h1 class="font-serif" style="margin:0;font-size:clamp(1.7rem,3vw,2.1rem)">Coffee shops</h1>
+            <p class="muted text-sm" style="margin:.35rem 0 0">Approve new shops or suspend ones that shouldn’t stay live.</p>
           </div>
         </div>
 
-        <div class="flex gap-2 mb-4" style="flex-wrap:wrap">
+        <div class="admin-filters">
           ${chip('all', `All (${shops.length})`)}
           ${chip('pending', `Pending (${shops.filter((s) => s.status === 'pending').length})`)}
           ${chip('approved', `Approved (${shops.filter((s) => s.status === 'approved').length})`)}
           ${chip('suspended', `Suspended (${shops.filter((s) => s.status === 'suspended').length})`)}
         </div>
 
-        <div class="card" style="padding:0;overflow:hidden">
+        <div class="admin-panel">
           ${visible.length === 0
-            ? `<p class="muted text-sm" style="padding:1.1rem">No shops in this filter.</p>`
+            ? `<p class="muted text-sm admin-empty">No shops in this filter.</p>`
             : visible.map((s) => {
                 const items = BH.productsOf(s.id).length
                 return `

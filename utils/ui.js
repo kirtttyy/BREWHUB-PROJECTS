@@ -136,16 +136,6 @@ const UI = {
   },
 
   adminSidebar(active) {
-    setTimeout(() => {
-      const topBtn = document.getElementById('signOutBtnTop')
-      if (topBtn) {
-        topBtn.onclick = () => {
-          BH.signOut()
-          location.href = BH.path('index.html')
-        }
-      }
-    }, 0)
-
     const links = [
       { id: 'home', href: 'admin/index.html', icon: 'home', label: 'Overview' },
       { id: 'shops', href: 'admin/shops.html', icon: 'store', label: 'Shops' },
@@ -160,28 +150,22 @@ const UI = {
             <span>BrewHub</span>
             <span class="admin-badge">Admin</span>
           </a>
-          <div class="admin-top-right">
-            <button class="btn btn-outline btn-sm admin-top-signout" id="signOutBtnTop" type="button">
-              ${this.svg('logout')}
-              <span>Sign out</span>
-            </button>
-          </div>
         </div>
       </header>
-      <nav class="bottom-nav admin-bottom-nav" aria-label="Admin Navigation">
+      <nav class="bottom-nav admin-bottom-nav" aria-label="Admin">
         <div class="dock admin-dock">
           ${links
-        .map(
-          (l) =>
-            `<a class="dock-item ${active === l.id ? 'active' : ''}" href="${BH.path(l.href)}">
+            .map(
+              (l) =>
+                `<a class="dock-item ${active === l.id ? 'active' : ''}" href="${BH.path(l.href)}">
                   <span class="dock-icon">${this.svg(l.icon)}</span>
                   <span class="dock-label">${l.label}</span>
                 </a>`
-        )
-        .join('')}
+            )
+            .join('')}
           <button class="dock-item dock-signout" id="signOutBtn" type="button" title="Sign out">
             <span class="dock-icon">${this.svg('logout')}</span>
-            <span class="dock-label">Sign out</span>
+            <span class="dock-label">Out</span>
           </button>
         </div>
       </nav>`

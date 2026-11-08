@@ -1,36 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Admin · BrewHub</title>
   <link rel="stylesheet" href="../css/style.css" />
 </head>
+
 <body>
-  <div class="cashier-layout">
-    <div id="sidebar"></div>
-    <main class="cashier-main" id="root"></main>
-  </div>
+    <div class="admin-layout">
+      <div id="sidebar"></div>
+      <main class="cashier-main" id="root"></main>
+    </div>
 
-  <script src="../models/db.js"></script>
-  <script src="../utils/ui.js"></script>
-  <script>
-    async function boot() {
-      await BH.init()
-      const user = UI.requireUser(['admin'])
-      if (!user) return
-      document.getElementById('sidebar').innerHTML = UI.adminSidebar('home')
-      document.getElementById('signOutBtn').onclick = () => { BH.signOut(); location.href = '../index.html' }
+    <script src="../models/db.js"></script>
+    <script src="../utils/ui.js"></script>
+    <script>
+      async function boot() {
+        await BH.init()
+        const user = UI.requireUser(['admin'])
+        if (!user) return
+        document.getElementById('sidebar').innerHTML = UI.adminSidebar('home')
+        document.getElementById('signOutBtn').onclick = () => { BH.signOut(); location.href = '../index.html' }
 
-      const stores = BH.db.stores
-      const pending = stores.filter((s) => s.status === 'pending')
-      const approved = stores.filter((s) => s.status === 'approved')
-      const customers = BH.db.users.filter((u) => u.role === 'customer').length
-      const owners = BH.db.users.filter((u) => u.role === 'store_owner').length
-      const orders = BH.db.orders
-      const activeOrders = orders.filter((o) => ['waiting_payment', 'preparing', 'ready'].includes(BH.effectiveStatus(o))).length
+        const stores = BH.db.stores
+        const pending = stores.filter((s) => s.status === 'pending')
+        const approved = stores.filter((s) => s.status === 'approved')
+        const customers = BH.db.users.filter((u) => u.role === 'customer').length
+        const owners = BH.db.users.filter((u) => u.role === 'store_owner').length
+        const orders = BH.db.orders
+        const activeOrders = orders.filter((o) => ['waiting_payment', 'preparing', 'ready'].includes(BH.effectiveStatus(o))).length
 
-      document.getElementById('root').innerHTML = `
+        document.getElementById('root').innerHTML = `
         <div class="cashier-top">
           <div>
             <h1 class="font-serif" style="margin:0;font-size:clamp(1.7rem,3vw,2.1rem)">Platform overview</h1>
@@ -82,22 +84,23 @@
         </a>
       `
 
-      document.querySelectorAll('[data-approve]').forEach((btn) => {
-        btn.onclick = () => {
-          BH.setStoreStatus(btn.dataset.approve, 'approved')
-          UI.toast('Shop approved. It’s now visible to customers.')
-          boot()
-        }
-      })
-      document.querySelectorAll('[data-suspend]').forEach((btn) => {
-        btn.onclick = () => {
-          BH.setStoreStatus(btn.dataset.suspend, 'suspended')
-          UI.toast('Shop rejected and suspended.')
-          boot()
-        }
-      })
-    }
-    boot()
-  </script>
+        document.querySelectorAll('[data-approve]').forEach((btn) => {
+          btn.onclick = () => {
+            BH.setStoreStatus(btn.dataset.approve, 'approved')
+            UI.toast('Shop approved. It’s now visible to customers.')
+            boot()
+          }
+        })
+        document.querySelectorAll('[data-suspend]').forEach((btn) => {
+          btn.onclick = () => {
+            BH.setStoreStatus(btn.dataset.suspend, 'suspended')
+            UI.toast('Shop rejected and suspended.')
+            boot()
+          }
+        })
+      }
+      boot()
+    </script>
 </body>
+
 </html>

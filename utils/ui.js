@@ -62,6 +62,7 @@ const UI = {
       pin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>',
       clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
       arrow: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>',
+      logout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>',
     }
     return icons[name] || ''
   },
@@ -98,11 +99,11 @@ const UI = {
           </a>
           <nav class="sidebar-nav">
             ${links
-              .map(
-                (l) =>
-                  `<a class="sidebar-link ${active === l.id ? 'active' : ''}" href="${BH.path(l.href)}"><span class="sidebar-ico">${this.svg(l.icon)}</span><span>${l.label}</span></a>`
-              )
-              .join('')}
+        .map(
+          (l) =>
+            `<a class="sidebar-link ${active === l.id ? 'active' : ''}" href="${BH.path(l.href)}"><span class="sidebar-ico">${this.svg(l.icon)}</span><span>${l.label}</span></a>`
+        )
+        .join('')}
           </nav>
         </div>
         <div class="sidebar-foot">
@@ -111,11 +112,11 @@ const UI = {
       </aside>
       <nav class="shell-mobile-nav" aria-label="Admin">
         ${links
-          .map(
-            (l) =>
-              `<a class="${active === l.id ? 'active' : ''}" href="${BH.path(l.href)}">${this.svg(l.icon)}<span>${l.label}</span></a>`
-          )
-          .join('')}
+        .map(
+          (l) =>
+            `<a class="${active === l.id ? 'active' : ''}" href="${BH.path(l.href)}">${this.svg(l.icon)}<span>${l.label}</span></a>`
+        )
+        .join('')}
       </nav>`
   },
 
@@ -135,16 +136,55 @@ const UI = {
   },
 
   adminSidebar(active) {
-    return this.shellSidebar({
-      homeHref: 'admin/index.html',
-      role: 'Admin',
-      active,
-      links: [
-        { id: 'home', href: 'admin/index.html', icon: 'home', label: 'Overview' },
-        { id: 'shops', href: 'admin/shops.html', icon: 'store', label: 'Shops' },
-        { id: 'users', href: 'admin/users.html', icon: 'user', label: 'Users' },
-      ],
-    })
+    setTimeout(() => {
+      const topBtn = document.getElementById('signOutBtnTop')
+      if (topBtn) {
+        topBtn.onclick = () => {
+          BH.signOut()
+          location.href = BH.path('index.html')
+        }
+      }
+    }, 0)
+
+    const links = [
+      { id: 'home', href: 'admin/index.html', icon: 'home', label: 'Overview' },
+      { id: 'shops', href: 'admin/shops.html', icon: 'store', label: 'Shops' },
+      { id: 'users', href: 'admin/users.html', icon: 'user', label: 'Users' },
+    ]
+
+    return `
+      <header class="app-top admin-top">
+        <div class="app-top-inner">
+          <a class="brand" href="${BH.path('admin/index.html')}">
+            <span class="brand-mark">${this.svg('coffee')}</span>
+            <span>BrewHub</span>
+            <span class="admin-badge">Admin</span>
+          </a>
+          <div class="admin-top-right">
+            <button class="btn btn-outline btn-sm admin-top-signout" id="signOutBtnTop" type="button">
+              ${this.svg('logout')}
+              <span>Sign out</span>
+            </button>
+          </div>
+        </div>
+      </header>
+      <nav class="bottom-nav admin-bottom-nav" aria-label="Admin Navigation">
+        <div class="dock admin-dock">
+          ${links
+        .map(
+          (l) =>
+            `<a class="dock-item ${active === l.id ? 'active' : ''}" href="${BH.path(l.href)}">
+                  <span class="dock-icon">${this.svg(l.icon)}</span>
+                  <span class="dock-label">${l.label}</span>
+                </a>`
+        )
+        .join('')}
+          <button class="dock-item dock-signout" id="signOutBtn" type="button" title="Sign out">
+            <span class="dock-icon">${this.svg('logout')}</span>
+            <span class="dock-label">Sign out</span>
+          </button>
+        </div>
+      </nav>`
   },
 
   statusLabel(status) {

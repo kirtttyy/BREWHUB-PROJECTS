@@ -1,38 +1,40 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Shops · Admin · BrewHub</title>
   <link rel="stylesheet" href="../css/style.css" />
 </head>
+
 <body>
-  <div class="cashier-layout">
-    <div id="sidebar"></div>
-    <main class="cashier-main" id="root"></main>
-  </div>
+    <div class="admin-layout">
+      <div id="sidebar"></div>
+      <main class="cashier-main" id="root"></main>
+    </div>
 
-  <script src="../models/db.js"></script>
-  <script src="../utils/ui.js"></script>
-  <script>
-    async function boot() {
-      await BH.init()
-      const user = UI.requireUser(['admin'])
-      if (!user) return
-      document.getElementById('sidebar').innerHTML = UI.adminSidebar('shops')
-      document.getElementById('signOutBtn').onclick = () => { BH.signOut(); location.href = '../index.html' }
+    <script src="../models/db.js"></script>
+    <script src="../utils/ui.js"></script>
+    <script>
+      async function boot() {
+        await BH.init()
+        const user = UI.requireUser(['admin'])
+        if (!user) return
+        document.getElementById('sidebar').innerHTML = UI.adminSidebar('shops')
+        document.getElementById('signOutBtn').onclick = () => { BH.signOut(); location.href = '../index.html' }
 
-      const filter = UI.qs('status') || 'all'
-      const shops = [...BH.db.stores].sort((a, b) => {
-        const rank = { pending: 0, approved: 1, suspended: 2 }
-        return (rank[a.status] ?? 9) - (rank[b.status] ?? 9) || a.name.localeCompare(b.name)
-      })
-      const visible = filter === 'all' ? shops : shops.filter((s) => s.status === filter)
+        const filter = UI.qs('status') || 'all'
+        const shops = [...BH.db.stores].sort((a, b) => {
+          const rank = { pending: 0, approved: 1, suspended: 2 }
+          return (rank[a.status] ?? 9) - (rank[b.status] ?? 9) || a.name.localeCompare(b.name)
+        })
+        const visible = filter === 'all' ? shops : shops.filter((s) => s.status === filter)
 
-      const chip = (id, label) =>
-        `<a class="chip ${filter === id ? 'active' : ''}" href="?status=${id}">${label}</a>`
+        const chip = (id, label) =>
+          `<a class="chip ${filter === id ? 'active' : ''}" href="?status=${id}">${label}</a>`
 
-      document.getElementById('root').innerHTML = `
+        document.getElementById('root').innerHTML = `
         <div class="cashier-top">
           <div>
             <h1 class="font-serif" style="margin:0;font-size:clamp(1.7rem,3vw,2.1rem)">Coffee shops</h1>
@@ -51,8 +53,8 @@
           ${visible.length === 0
             ? `<p class="muted text-sm admin-empty">No shops in this filter.</p>`
             : visible.map((s) => {
-                const items = BH.productsOf(s.id).length
-                return `
+              const items = BH.productsOf(s.id).length
+              return `
                   <div class="admin-row shops">
                     <img class="admin-thumb" src="${BH.mediaUrl(s.image)}" alt="" />
                     <div>
@@ -68,20 +70,21 @@
                     </div>
                   </div>
                 `
-              }).join('')}
+            }).join('')}
         </div>
       `
 
-      document.querySelectorAll('[data-status]').forEach((btn) => {
-        btn.onclick = () => {
-          const to = btn.dataset.to
-          BH.setStoreStatus(btn.dataset.status, to)
-          UI.toast(to === 'approved' ? 'Shop is now live.' : to === 'suspended' ? 'Shop suspended.' : 'Shop set back to pending.')
-          boot()
-        }
-      })
-    }
-    boot()
-  </script>
+        document.querySelectorAll('[data-status]').forEach((btn) => {
+          btn.onclick = () => {
+            const to = btn.dataset.to
+            BH.setStoreStatus(btn.dataset.status, to)
+            UI.toast(to === 'approved' ? 'Shop is now live.' : to === 'suspended' ? 'Shop suspended.' : 'Shop set back to pending.')
+            boot()
+          }
+        })
+      }
+      boot()
+    </script>
 </body>
+
 </html>

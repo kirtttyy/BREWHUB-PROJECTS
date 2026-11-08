@@ -571,6 +571,41 @@ h3,
   font-size: 1.15rem;
 }
 
+.shop-desc {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+.shop-desc.is-open {
+  display: block;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+  overflow: visible;
+}
+
+.shop-desc-more {
+  border: 0;
+  background: none;
+  padding: 0;
+  margin: 0;
+  color: var(--primary);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+  width: fit-content;
+}
+
+.shop-desc-more:hover {
+  text-decoration: underline;
+}
+
 .shop-meta {
   color: var(--muted-foreground);
   font-size: 0.85rem;

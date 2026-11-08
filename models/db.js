@@ -6,6 +6,7 @@ const ORDER_TTL_MS = 30 * 60 * 1000
 const BH = {
   db: null,
   seed: null,
+  routeParams: {},
 
   async init() {
     // Prefer fresh models/db.json so admin credentials stay correct after updates.
@@ -305,8 +306,8 @@ const BH = {
 
   homeFor(user) {
     if (user.role === 'admin') return this.path('admin/index.html')
-    if (user.role === 'store_owner') return this.path('cashier/index.html')
-    return this.path('customer/stores.html')
+    if (user.role === 'store_owner') return this.path('app.html') + '#/cashier'
+    return this.path('app.html') + '#/stores'
   },
 
   path(rel) {

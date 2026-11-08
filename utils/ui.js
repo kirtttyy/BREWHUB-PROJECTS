@@ -25,7 +25,14 @@ const UI = {
   },
 
   qs(name) {
-    return new URLSearchParams(location.search).get(name)
+    if (BH.routeParams && BH.routeParams[name] != null && BH.routeParams[name] !== '') {
+      return BH.routeParams[name]
+    }
+    const fromSearch = new URLSearchParams(location.search).get(name)
+    if (fromSearch) return fromSearch
+    const hash = location.hash || ''
+    const q = hash.includes('?') ? hash.split('?')[1] : ''
+    return new URLSearchParams(q).get(name)
   },
 
   requireUser(roles) {
@@ -71,17 +78,23 @@ const UI = {
     return `<a class="brand" href="${BH.path('index.html')}"><span class="brand-mark">${this.svg('coffee')}</span>BrewHub</a>`
   },
 
+  href(to) {
+    if (!to) return '#'
+    if (to.startsWith('#') || to.startsWith('http') || to.startsWith('mailto:')) return to
+    return BH.path(to)
+  },
+
   customerNav(active) {
     const links = [
-      { id: 'stores', href: 'customer/stores.html', icon: 'store', label: 'Shops' },
-      { id: 'cart', href: 'customer/cart.html', icon: 'bag', label: 'Tray' },
-      { id: 'orders', href: 'customer/orders.html', icon: 'list', label: 'Orders' },
-      { id: 'me', href: 'customer/me.html', icon: 'user', label: 'Me' },
+      { id: 'stores', href: '#/stores', icon: 'store', label: 'Shops' },
+      { id: 'cart', href: '#/cart', icon: 'bag', label: 'Tray' },
+      { id: 'orders', href: '#/orders', icon: 'list', label: 'Orders' },
+      { id: 'me', href: '#/me', icon: 'user', label: 'Me' },
     ]
     return `<nav class="bottom-nav" aria-label="Main"><div class="dock">${links
       .map(
         (l) =>
-          `<a class="dock-item ${active === l.id ? 'active' : ''}" href="${BH.path(l.href)}"><span class="dock-icon">${this.svg(l.icon)}</span><span class="dock-label">${l.label}</span></a>`
+          `<a class="dock-item ${active === l.id ? 'active' : ''}" href="${l.href}"><span class="dock-icon">${this.svg(l.icon)}</span><span class="dock-label">${l.label}</span></a>`
       )
       .join('')}</div></nav>`
   },
@@ -90,7 +103,7 @@ const UI = {
     return `
       <aside class="sidebar">
         <div class="sidebar-top">
-          <a class="sidebar-brand" href="${BH.path(homeHref)}">
+          <a class="sidebar-brand" href="${this.href(homeHref)}">
             <span class="brand-mark">${this.svg('coffee')}</span>
             <span>
               <strong>BrewHub</strong>
@@ -101,7 +114,7 @@ const UI = {
             ${links
         .map(
           (l) =>
-            `<a class="sidebar-link ${active === l.id ? 'active' : ''}" href="${BH.path(l.href)}"><span class="sidebar-ico">${this.svg(l.icon)}</span><span>${l.label}</span></a>`
+            `<a class="sidebar-link ${active === l.id ? 'active' : ''}" href="${this.href(l.href)}"><span class="sidebar-ico">${this.svg(l.icon)}</span><span>${l.label}</span></a>`
         )
         .join('')}
           </nav>
@@ -114,7 +127,7 @@ const UI = {
         ${links
         .map(
           (l) =>
-            `<a class="${active === l.id ? 'active' : ''}" href="${BH.path(l.href)}">${this.svg(l.icon)}<span>${l.label}</span></a>`
+            `<a class="${active === l.id ? 'active' : ''}" href="${this.href(l.href)}">${this.svg(l.icon)}<span>${l.label}</span></a>`
         )
         .join('')}
       </nav>`
@@ -122,15 +135,15 @@ const UI = {
 
   cashierSidebar(active) {
     return this.shellSidebar({
-      homeHref: 'cashier/index.html',
+      homeHref: '#/cashier',
       role: 'Store owner',
       active,
       links: [
-        { id: 'home', href: 'cashier/index.html', icon: 'home', label: 'Dashboard' },
-        { id: 'scan', href: 'cashier/scan.html', icon: 'scan', label: 'Scan' },
-        { id: 'orders', href: 'cashier/orders.html', icon: 'list', label: 'Orders' },
-        { id: 'products', href: 'cashier/products.html', icon: 'bag', label: 'Products' },
-        { id: 'settings', href: 'cashier/settings.html', icon: 'settings', label: 'Settings' },
+        { id: 'home', href: '#/cashier', icon: 'home', label: 'Dashboard' },
+        { id: 'scan', href: '#/cashier/scan', icon: 'scan', label: 'Scan' },
+        { id: 'orders', href: '#/cashier/orders', icon: 'list', label: 'Orders' },
+        { id: 'products', href: '#/cashier/products', icon: 'bag', label: 'Products' },
+        { id: 'settings', href: '#/cashier/settings', icon: 'settings', label: 'Settings' },
       ],
     })
   },

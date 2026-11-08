@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Order ticket · BrewHub</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+  <header class="app-top"><div class="app-top-inner"><div id="brand"></div></div></header>
+  <main class="page-pad"><div class="container-sm" id="root"></div></main>
+  <div id="nav"></div>
+
+  <script src="../js/db.js"></script>
+  <script src="../js/ui.js"></script>
+  <script>
+    async function boot() {
+      await BH.init()
+      const user = UI.requireUser(['customer'])
+      if (!user) return
+      document.getElementById('brand').innerHTML = UI.brandHtml()
+      document.getElementById('nav').innerHTML = UI.customerNav('orders')
+      render()
+      setInterval(render, 5000)
+    }
+
+    function render() {
+      const order = BH.findOrder(UI.qs('code'))
+      if (!order) {
+        document.getElementById('root').innerHTML = `<div class="card" style="padding:1.5rem;text-align:center"><p class="font-bold">Order not found</p><a class="btn btn-primary mt-3" href="orders.html">My orders</a></div>`
+        return
+      }
+      const status = BH.effectiveStatus(order)
+      if (status === 'expired' && order.status !== 'expired') { order.status = 'expired'; BH.save() }
+      const store = BH.storeById(order.storeId)
+      const hint = {
+        waiting_payment: 'Show this QR code to the cashier to pay and confirm your order.',
+        preparing: 'Paid! Your order is being prepared ☕',
+        ready: 'Your order is ready! Please claim it at the counter.',
+        claimed: 'Enjoy your coffee! Thanks for ordering with us.',
+        cancelled: 'This order was cancelled.',
+        expired: 'This QR has expired. You can order again anytime.',
+      }[status]
+
+      document.getElementById('root').innerHTML = `
+        <div class="text-center mb-3">
+          <span class="status-pill status-${status}">${UI.statusLabel(status)}</span>
+          <p class="muted text-sm mt-2">${hint}</p>
+        </div>
+        <div class="qr-box">
+          <p class="text-sm muted" style="margin:0">${store.name}</p>
+          <div class="code-big">${order.code}</div>
+          ${status === 'waiting_payment' ? UI.makeQr('BREWHUB:' + order.code, 200) : ''}
+          ${order.queueNumber ? `<p class="font-bold mt-2">Queue #${order.queueNumber}</p>` : ''}
+          ${order.estimatedReadyAt && status === 'preparing' ? `<p class="text-sm muted">Ready around ${new Date(order.estimatedReadyAt).toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit' })}</p>` : ''}
+        </div>
+        <div class="card" style="padding:1rem;margin-top:1rem">
+          <p class="font-bold mb-2">Items</p>
+          ${order.items.map((i) => `
+            <div class="flex-between text-sm" style="padding:.35rem 0">
+              <span>${i.quantity}× ${i.name}${i.size ? ` (${i.size})` : ''}</span>
+              <span>${UI.peso(i.price * i.quantity)}</span>
+            </div>`).join('')}
+          <hr style="border:none;border-top:1px solid var(--border);margin:.75rem 0" />
+          <div class="flex-between text-sm"><span class="muted">Subtotal</span><span>${UI.peso(order.subtotal)}</span></div>
+          ${order.discount ? `<div class="flex-between text-sm"><span class="muted">${order.promoLabel || 'Discount'}</span><span style="color:#059669">−${UI.peso(order.discount)}</span></div>` : ''}
+          <div class="flex-between font-bold mt-2"><span>Total</span><span>${UI.peso(order.total)}</span></div>
+          ${order.pointsEarned ? `<p class="text-xs muted mt-2">You earned ${order.pointsEarned} points${order.stampsEarned ? ` and ${order.stampsEarned} stamp${order.stampsEarned === 1 ? '' : 's'}` : ''}.</p>` : ''}
+        </div>
+        <a class="btn btn-outline w-full mt-3" href="orders.html">Back to my orders</a>
+      `
+    }
+    boot()
+  </script>
+</body>
+</html>

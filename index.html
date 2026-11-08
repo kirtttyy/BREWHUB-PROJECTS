@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BrewHub · Order ahead, pay at the counter</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a class="brand" href="index.html"><span class="brand-mark" id="brandIcon"></span>BrewHub</a>
+      <div class="header-actions">
+        <a class="btn btn-ghost" href="login.html">Sign in</a>
+        <a class="btn btn-primary" href="register.html">Create account</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container hero-grid">
+        <div>
+          <span class="eyebrow" id="eyebrow"></span>
+          <h1>Order ahead, skip the wait.</h1>
+          <p class="lead">Choose your drinks from local coffee shops, get a QR code, and just show it at the counter. The cashier scans it, you pay, and your coffee is on its way.</p>
+          <div class="hero-cta">
+            <a class="btn btn-primary btn-lg" href="#shops">Find a coffee shop <span id="arrow1"></span></a>
+            <a class="btn btn-outline btn-lg" href="#how">See how it works</a>
+          </div>
+        </div>
+        <div class="hero-art">
+          <img src="https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=900&h=1100&fit=crop" alt="A fresh cup of coffee" />
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="how">
+      <div class="container">
+        <h2 class="section-title">How it works</h2>
+        <p class="section-sub">Four simple steps. No delivery. Pay when you arrive.</p>
+        <div class="steps" id="steps"></div>
+      </div>
+    </section>
+
+    <section class="section" id="shops">
+      <div class="container">
+        <h2 class="section-title">Coffee shops near you</h2>
+        <p class="section-sub">Open shops first. Closed shops can’t be opened.</p>
+        <div class="shop-grid" id="shopsGrid"></div>
+        <p class="text-center muted mt-4 text-sm">Sign in to order. Demo accounts are on the sign-in page.</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/db.js"></script>
+  <script src="js/ui.js"></script>
+  <script>
+    async function boot() {
+      await BH.init()
+      UI.guestOnly()
+      document.getElementById('brandIcon').innerHTML = UI.svg('coffee')
+      document.getElementById('eyebrow').innerHTML = `${UI.svg('qr')} Order ahead · Pay at the counter`
+      document.getElementById('arrow1').innerHTML = UI.svg('arrow')
+
+      const steps = [
+        { icon: 'store', title: 'Pick a shop', text: 'Browse coffee shops near you and open their menu.' },
+        { icon: 'bag', title: 'Choose your drinks', text: 'Add items to your tray and set how many you want.' },
+        { icon: 'qr', title: 'Get your QR', text: 'We’ll give you a QR code for your order. No payment yet.' },
+        { icon: 'wallet', title: 'Pay at the counter', text: 'The cashier scans your QR, you pay, and they start brewing.' },
+      ]
+      document.getElementById('steps').innerHTML = steps.map((s) => `
+        <div class="step">
+          <div class="step-icon">${UI.svg(s.icon)}</div>
+          <h3>${s.title}</h3>
+          <p>${s.text}</p>
+        </div>
+      `).join('')
+
+      const shops = BH.approvedStores().sort((a, b) => Number(b.acceptingOrders) - Number(a.acceptingOrders) || b.rating - a.rating)
+      document.getElementById('shopsGrid').innerHTML = shops.map((s) => {
+        const count = BH.productsOf(s.id).length
+        const open = s.acceptingOrders
+        return `
+          <${open ? 'a' : 'div'} class="shop-card ${open ? 'open' : 'closed'}" ${open ? `href="login.html"` : ''}>
+            <div class="cover">
+              <img src="${s.image}" alt="${s.name}" />
+              ${open
+                ? `<span class="badge badge-open" style="position:absolute;left:.75rem;top:.75rem">● Open</span>`
+                : `<div class="closed-overlay"><strong>Closed</strong><span class="text-xs">Unavailable right now</span></div>`}
+            </div>
+            <div class="shop-body">
+              <div class="flex-between">
+                <h3>${s.name}</h3>
+                ${s.rating ? `<span class="text-sm font-bold" style="display:inline-flex;gap:.25rem;align-items:center;color:#d97706">${UI.svg('star')} ${s.rating.toFixed(1)}</span>` : ''}
+              </div>
+              <p class="text-sm muted" style="margin:0">${s.description}</p>
+              <div class="shop-meta">
+                <span style="display:inline-flex;gap:.35rem;align-items:center">${UI.svg('pin')} ${s.address}</span>
+                <span style="display:inline-flex;gap:.35rem;align-items:center">${UI.svg('clock')} ${UI.time12(s.openTime)} – ${UI.time12(s.closeTime)}</span>
+              </div>
+              <div class="shop-foot">
+                <span class="muted">${count} items on the menu</span>
+                <span class="cta">${open ? `See menu ${UI.svg('arrow')}` : `Opens at ${UI.time12(s.openTime)}`}</span>
+              </div>
+            </div>
+          </${open ? 'a' : 'div'}>
+        `
+      }).join('')
+    }
+    boot()
+  </script>
+</body>
+</html>

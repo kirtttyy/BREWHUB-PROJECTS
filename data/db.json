@@ -1,0 +1,150 @@
+{
+  "version": 2,
+  "users": [
+    { "id": "u-admin-1", "name": "BrewHub Admin", "email": "admin@demo.com", "password": "demo123", "role": "admin", "phone": "0917 000 0001" },
+    { "id": "u-customer-1", "name": "Juan Dela Cruz", "email": "juan@demo.com", "password": "demo123", "role": "customer", "phone": "0917 123 4567" },
+    { "id": "u-customer-2", "name": "Maria Santos", "email": "maria@demo.com", "password": "demo123", "role": "customer", "phone": "0918 555 1122" },
+    { "id": "u-owner-1", "name": "Ana Reyes", "email": "cashier@demo.com", "password": "demo123", "role": "store_owner", "phone": "0920 111 2233" },
+    { "id": "u-owner-2", "name": "Carlo Lim", "email": "carlo@demo.com", "password": "demo123", "role": "store_owner", "phone": "0921 444 5566" }
+  ],
+  "stores": [
+    {
+      "id": "s-1",
+      "ownerId": "u-owner-1",
+      "name": "Kape ni Juan",
+      "description": "Local brews and fresh pastries, made with Cebu-grown beans.",
+      "address": "Gorordo Ave, Lahug",
+      "area": "Lahug",
+      "image": "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=800&h=800&fit=crop",
+      "openTime": "07:00",
+      "closeTime": "21:00",
+      "rating": 4.8,
+      "status": "approved",
+      "acceptingOrders": true,
+      "prepMinutes": 8,
+      "categories": [
+        { "id": "hot-coffee", "name": "Hot Coffee", "isDrink": true },
+        { "id": "iced-coffee", "name": "Iced Coffee", "isDrink": true },
+        { "id": "non-coffee", "name": "Non-Coffee", "isDrink": true },
+        { "id": "pastry", "name": "Pastries", "isDrink": false }
+      ],
+      "loyalty": {
+        "pointsEnabled": true,
+        "stampsEnabled": true,
+        "stampsRequired": 9,
+        "stampRewardLabel": "Free drink of your choice",
+        "stampRewardMaxValue": 180
+      }
+    },
+    {
+      "id": "s-2",
+      "ownerId": "u-owner-1",
+      "name": "Brew & Bean",
+      "description": "Specialty coffee with a cozy spot to work or chill.",
+      "address": "Cebu IT Park, Apas",
+      "area": "IT Park",
+      "image": "https://images.unsplash.com/photo-1559305616-3f99cd43e353?w=800&h=800&fit=crop",
+      "openTime": "06:00",
+      "closeTime": "23:00",
+      "rating": 4.6,
+      "status": "approved",
+      "acceptingOrders": true,
+      "prepMinutes": 10,
+      "categories": [
+        { "id": "hot-coffee", "name": "Hot Coffee", "isDrink": true },
+        { "id": "iced-coffee", "name": "Iced Coffee", "isDrink": true },
+        { "id": "non-coffee", "name": "Non-Coffee", "isDrink": true },
+        { "id": "pastry", "name": "Pastries", "isDrink": false }
+      ],
+      "loyalty": {
+        "pointsEnabled": true,
+        "stampsEnabled": false,
+        "stampsRequired": 9,
+        "stampRewardLabel": "Free drink of your choice",
+        "stampRewardMaxValue": 180
+      }
+    },
+    {
+      "id": "s-4",
+      "ownerId": "u-owner-1",
+      "name": "Tasa Café",
+      "description": "Quiet neighborhood café with homestyle drinks.",
+      "address": "Gov. M. Cuenco Ave, Banilad",
+      "area": "Banilad",
+      "image": "https://images.unsplash.com/photo-1453614512568-c4024d13c247?w=800&h=800&fit=crop",
+      "openTime": "08:00",
+      "closeTime": "18:00",
+      "rating": 4.5,
+      "status": "approved",
+      "acceptingOrders": false,
+      "prepMinutes": 10,
+      "categories": [
+        { "id": "hot-coffee", "name": "Hot Coffee", "isDrink": true },
+        { "id": "iced-coffee", "name": "Iced Coffee", "isDrink": true },
+        { "id": "non-coffee", "name": "Non-Coffee", "isDrink": true },
+        { "id": "pastry", "name": "Pastries", "isDrink": false }
+      ],
+      "loyalty": {
+        "pointsEnabled": true,
+        "stampsEnabled": false,
+        "stampsRequired": 9,
+        "stampRewardLabel": "Free drink of your choice",
+        "stampRewardMaxValue": 180
+      }
+    },
+    {
+      "id": "s-5",
+      "ownerId": "u-owner-2",
+      "name": "Lungsod Roast",
+      "description": "Small-batch roasting and pour-overs near Fuente.",
+      "address": "Fuente Osmeña Circle",
+      "area": "Fuente",
+      "image": "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=800&h=800&fit=crop",
+      "openTime": "07:30",
+      "closeTime": "20:00",
+      "rating": 0,
+      "status": "pending",
+      "acceptingOrders": false,
+      "prepMinutes": 12,
+      "categories": [
+        { "id": "hot-coffee", "name": "Hot Coffee", "isDrink": true },
+        { "id": "iced-coffee", "name": "Iced Coffee", "isDrink": true },
+        { "id": "pastry", "name": "Pastries", "isDrink": false }
+      ],
+      "loyalty": {
+        "pointsEnabled": true,
+        "stampsEnabled": false,
+        "stampsRequired": 9,
+        "stampRewardLabel": "Free drink of your choice",
+        "stampRewardMaxValue": 180
+      }
+    }
+  ],
+  "products": [
+    { "id": "s-1-espresso", "storeId": "s-1", "name": "Classic Espresso", "description": "A rich and bold single shot of espresso.", "price": 90, "category": "hot-coffee", "image": "https://images.unsplash.com/photo-1510591509098-f4fdc6d0ff04?w=400&h=400&fit=crop", "available": true, "sizes": [], "addOns": [{ "name": "Extra shot", "price": 30 }], "points": 9 },
+    { "id": "s-1-cappuccino", "storeId": "s-1", "name": "Cappuccino", "description": "Espresso with steamed milk and soft foam.", "price": 130, "category": "hot-coffee", "image": "https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=400&h=400&fit=crop", "available": true, "sizes": [{ "name": "Regular", "priceDelta": 0 }, { "name": "Large", "priceDelta": 25 }], "addOns": [{ "name": "Extra shot", "price": 30 }, { "name": "Oat milk", "price": 35 }], "points": 13 },
+    { "id": "s-1-caramel-latte", "storeId": "s-1", "name": "Caramel Latte", "description": "Smooth latte with a sweet caramel drizzle.", "price": 145, "category": "hot-coffee", "image": "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=400&h=400&fit=crop", "available": true, "sizes": [{ "name": "Regular", "priceDelta": 0 }, { "name": "Large", "priceDelta": 25 }], "addOns": [{ "name": "Extra shot", "price": 30 }, { "name": "Oat milk", "price": 35 }], "points": 15 },
+    { "id": "s-1-iced-americano", "storeId": "s-1", "name": "Iced Americano", "description": "Bold espresso over ice and cold water.", "price": 110, "category": "iced-coffee", "image": "https://images.unsplash.com/photo-1517959105821-eaf2591984ca?w=400&h=400&fit=crop", "available": true, "sizes": [{ "name": "Regular", "priceDelta": 0 }, { "name": "Large", "priceDelta": 25 }], "addOns": [{ "name": "Extra shot", "price": 30 }], "points": 11 },
+    { "id": "s-1-spanish-latte", "storeId": "s-1", "name": "Iced Spanish Latte", "description": "Sweet and creamy with condensed milk.", "price": 150, "category": "iced-coffee", "image": "https://images.unsplash.com/photo-1553909489-cd47e0907980?w=400&h=400&fit=crop", "available": true, "sizes": [{ "name": "Regular", "priceDelta": 0 }, { "name": "Large", "priceDelta": 25 }], "addOns": [{ "name": "Extra shot", "price": 30 }, { "name": "Oat milk", "price": 35 }], "points": 15 },
+    { "id": "s-1-matcha", "storeId": "s-1", "name": "Matcha Latte", "description": "Japanese matcha with fresh milk.", "price": 150, "category": "non-coffee", "image": "https://images.unsplash.com/photo-1515823064-d6e0c04616a7?w=400&h=400&fit=crop", "available": true, "sizes": [{ "name": "Regular", "priceDelta": 0 }, { "name": "Large", "priceDelta": 25 }], "addOns": [{ "name": "Oat milk", "price": 35 }], "points": 15 },
+    { "id": "s-1-croissant", "storeId": "s-1", "name": "Butter Croissant", "description": "Flaky, buttery, and baked fresh daily.", "price": 85, "category": "pastry", "image": "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=400&h=400&fit=crop", "available": true, "sizes": [], "addOns": [], "points": 5 },
+    { "id": "s-1-muffin", "storeId": "s-1", "name": "Blueberry Muffin", "description": "Soft muffin loaded with blueberries.", "price": 75, "category": "pastry", "image": "https://images.unsplash.com/photo-1607958996333-41aef7caefaa?w=400&h=400&fit=crop", "available": false, "sizes": [], "addOns": [], "points": 5 },
+    { "id": "s-2-cappuccino", "storeId": "s-2", "name": "Cappuccino", "description": "Espresso with steamed milk and soft foam.", "price": 140, "category": "hot-coffee", "image": "https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=400&h=400&fit=crop", "available": true, "sizes": [{ "name": "Regular", "priceDelta": 0 }, { "name": "Large", "priceDelta": 25 }], "addOns": [{ "name": "Extra shot", "price": 30 }], "points": 14 },
+    { "id": "s-2-spanish-latte", "storeId": "s-2", "name": "Iced Spanish Latte", "description": "Sweet and creamy with condensed milk.", "price": 160, "category": "iced-coffee", "image": "https://images.unsplash.com/photo-1553909489-cd47e0907980?w=400&h=400&fit=crop", "available": true, "sizes": [{ "name": "Regular", "priceDelta": 0 }, { "name": "Large", "priceDelta": 25 }], "addOns": [{ "name": "Oat milk", "price": 35 }], "points": 16 },
+    { "id": "s-2-croissant", "storeId": "s-2", "name": "Butter Croissant", "description": "Flaky, buttery, and baked fresh daily.", "price": 95, "category": "pastry", "image": "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=400&h=400&fit=crop", "available": true, "sizes": [], "addOns": [], "points": 5 },
+    { "id": "s-4-cappuccino", "storeId": "s-4", "name": "Cappuccino", "description": "Espresso with steamed milk and soft foam.", "price": 125, "category": "hot-coffee", "image": "https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=400&h=400&fit=crop", "available": true, "sizes": [{ "name": "Regular", "priceDelta": 0 }, { "name": "Large", "priceDelta": 25 }], "addOns": [], "points": 13 },
+    { "id": "s-4-croissant", "storeId": "s-4", "name": "Butter Croissant", "description": "Flaky, buttery, and baked fresh daily.", "price": 80, "category": "pastry", "image": "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=400&h=400&fit=crop", "available": true, "sizes": [], "addOns": [], "points": 5 }
+  ],
+  "orders": [],
+  "trays": {},
+  "points": [
+    { "id": "pt-1", "customerId": "u-customer-1", "storeId": "s-1", "type": "earned", "points": 135, "description": "Earlier visits" }
+  ],
+  "stamps": [
+    { "id": "st-1", "customerId": "u-customer-1", "storeId": "s-1", "type": "earned", "stamps": 7, "description": "Earlier visits" }
+  ],
+  "promos": [
+    { "id": "pr-4", "storeId": "s-1", "type": "promo_code", "name": "Kape Lovers Code", "active": true, "code": "KAPE10", "discountType": "percent", "amount": 10, "minSpend": 200 }
+  ],
+  "vouchers": []
+}

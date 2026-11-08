@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Create account · BrewHub</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="auth-shell">
+    <div class="auth-card">
+      <a class="brand" href="index.html"><span class="brand-mark" id="brandIcon"></span>BrewHub</a>
+      <h1>Create account</h1>
+      <p class="sub">Fill this in so shops know who’s ordering.</p>
+
+      <form id="registerForm" class="stack">
+        <div class="field">
+          <label for="lastName">Last name</label>
+          <input class="input" id="lastName" type="text" placeholder="Dela Cruz" required autocomplete="family-name" />
+        </div>
+        <div class="field">
+          <label for="firstName">First name</label>
+          <input class="input" id="firstName" type="text" placeholder="Juan" required autocomplete="given-name" />
+        </div>
+        <div class="field">
+          <label for="address">Where do you live?</label>
+          <input class="input" id="address" type="text" placeholder="Barangay, city" required autocomplete="street-address" />
+        </div>
+        <div class="field">
+          <label for="phone">Phone number</label>
+          <input class="input" id="phone" type="tel" placeholder="09XX XXX XXXX" required autocomplete="tel" />
+        </div>
+        <div class="field">
+          <label for="email">Email</label>
+          <input class="input" id="email" type="email" placeholder="you@email.com" required autocomplete="email" />
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input class="input" id="password" type="password" placeholder="At least 6 characters" required minlength="6" autocomplete="new-password" />
+        </div>
+        <div id="error" class="error-box hidden"></div>
+        <button class="btn btn-primary btn-lg w-full" type="submit">Register</button>
+      </form>
+      <p class="text-center text-sm muted mt-3">
+        Already have an account? <a href="login.html" style="font-weight:600;color:var(--primary)">Sign in</a>
+      </p>
+    </div>
+  </div>
+
+  <script src="js/db.js"></script>
+  <script src="js/ui.js"></script>
+  <script>
+    async function boot() {
+      await BH.init()
+      UI.guestOnly()
+      document.getElementById('brandIcon').innerHTML = UI.svg('coffee')
+
+      document.getElementById('registerForm').addEventListener('submit', (e) => {
+        e.preventDefault()
+        const error = document.getElementById('error')
+        try {
+          const user = BH.registerCustomer({
+            lastName: document.getElementById('lastName').value,
+            firstName: document.getElementById('firstName').value,
+            address: document.getElementById('address').value,
+            phone: document.getElementById('phone').value,
+            email: document.getElementById('email').value,
+            password: document.getElementById('password').value,
+          })
+          location.href = BH.homeFor(user)
+        } catch (err) {
+          error.textContent = err.message
+          error.classList.remove('hidden')
+        }
+      })
+    }
+    boot()
+  </script>
+</body>
+</html>

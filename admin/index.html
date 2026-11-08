@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin · BrewHub</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+  <div class="cashier-layout">
+    <div id="sidebar"></div>
+    <main class="cashier-main" id="root"></main>
+  </div>
+
+  <script src="../js/db.js"></script>
+  <script src="../js/ui.js"></script>
+  <script>
+    async function boot() {
+      await BH.init()
+      const user = UI.requireUser(['admin'])
+      if (!user) return
+      document.getElementById('sidebar').innerHTML = UI.adminSidebar('home')
+      document.getElementById('signOutBtn').onclick = () => { BH.signOut(); location.href = '../index.html' }
+
+      const stores = BH.db.stores
+      const pending = stores.filter((s) => s.status === 'pending')
+      const approved = stores.filter((s) => s.status === 'approved')
+      const customers = BH.db.users.filter((u) => u.role === 'customer').length
+      const owners = BH.db.users.filter((u) => u.role === 'store_owner').length
+      const orders = BH.db.orders
+      const activeOrders = orders.filter((o) => ['waiting_payment', 'preparing', 'ready'].includes(BH.effectiveStatus(o))).length
+
+      document.getElementById('root').innerHTML = `
+        <div class="cashier-top">
+          <div>
+            <h1 class="font-serif" style="margin:0;font-size:2rem">Platform overview</h1>
+            <p class="muted text-sm" style="margin:.2rem 0 0">Approve shops and keep BrewHub tidy.</p>
+          </div>
+          <a class="btn btn-primary" href="shops.html">${UI.svg('store')} Review shops</a>
+        </div>
+
+        <div class="stat-grid mb-4">
+          <div class="stat"><div class="label">Pending shops</div><div class="value">${pending.length}</div></div>
+          <div class="stat"><div class="label">Live shops</div><div class="value">${approved.length}</div></div>
+          <div class="stat"><div class="label">Customers</div><div class="value">${customers}</div></div>
+          <div class="stat"><div class="label">Active orders</div><div class="value">${activeOrders}</div></div>
+        </div>
+
+        <div class="card mb-4" style="padding:0;overflow:hidden">
+          <div class="flex-between" style="padding:1rem 1.1rem;border-bottom:1px solid var(--border)">
+            <div>
+              <div class="font-bold">Awaiting approval</div>
+              <div class="text-sm muted">New shops stay hidden until you approve them.</div>
+            </div>
+            <span class="text-sm muted">${owners} shop owners</span>
+          </div>
+          ${pending.length === 0
+            ? `<p class="muted text-sm" style="padding:1.1rem">No shops waiting right now.</p>`
+            : pending.map((s) => `
+              <div class="admin-row shops">
+                <img class="admin-thumb" src="${s.image}" alt="" />
+                <div>
+                  <div class="font-bold">${s.name}</div>
+                  <div class="text-sm muted">${s.area} · ${BH.ownerName(s.ownerId)}</div>
+                </div>
+                <div class="text-sm muted">${s.address}</div>
+                <span class="badge badge-pending">Pending</span>
+                <div class="admin-actions">
+                  <button class="btn btn-primary btn-sm" data-approve="${s.id}">Approve</button>
+                  <button class="btn btn-outline btn-sm" data-suspend="${s.id}">Reject</button>
+                </div>
+              </div>
+            `).join('')}
+        </div>
+
+        <a class="card" style="display:flex;justify-content:space-between;align-items:center;padding:1.1rem" href="users.html">
+          <div>
+            <div class="font-bold">Browse users</div>
+            <div class="text-sm muted">Customers, cashiers, and admins on the demo platform.</div>
+          </div>
+          <span>${UI.svg('arrow')}</span>
+        </a>
+      `
+
+      document.querySelectorAll('[data-approve]').forEach((btn) => {
+        btn.onclick = () => {
+          BH.setStoreStatus(btn.dataset.approve, 'approved')
+          UI.toast('Shop approved. It’s now visible to customers.')
+          boot()
+        }
+      })
+      document.querySelectorAll('[data-suspend]').forEach((btn) => {
+        btn.onclick = () => {
+          BH.setStoreStatus(btn.dataset.suspend, 'suspended')
+          UI.toast('Shop rejected and suspended.')
+          boot()
+        }
+      })
+    }
+    boot()
+  </script>
+</body>
+</html>

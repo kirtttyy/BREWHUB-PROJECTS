@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Menu · BrewHub</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+  <div id="root"></div>
+  <div id="nav"></div>
+  <div id="trayBar"></div>
+  <div id="modal"></div>
+
+  <script src="../js/db.js"></script>
+  <script src="../js/ui.js"></script>
+  <script>
+    let user, store, category = 'all', selected = null, qty = 1, size, addOns = [], note = ''
+
+    async function boot() {
+      await BH.init()
+      user = UI.requireUser(['customer'])
+      if (!user) return
+      store = BH.storeById(UI.qs('store'))
+      if (!store || store.status !== 'approved') {
+        document.getElementById('root').innerHTML = `<div class="container page-pad text-center"><h1>Shop not found</h1><a class="btn btn-primary mt-3" href="stores.html">Back to shops</a></div>`
+        return
+      }
+      document.getElementById('nav').innerHTML = UI.customerNav('stores')
+      render()
+    }
+
+    function trayInfo() {
+      const tray = BH.trayOf(user.id).filter((l) => l.storeId === store.id)
+      const count = tray.reduce((s, l) => s + l.quantity, 0)
+      const total = tray.reduce((s, l) => {
+        const p = BH.db.products.find((x) => x.id === l.productId)
+        return s + (p ? BH.unitPrice(p, l.size, l.addOns || []) * l.quantity : 0)
+      }, 0)
+      return { count, total }
+    }
+
+    function render() {
+      if (!store.acceptingOrders) {
+        document.getElementById('root').innerHTML = `
+          <div class="container page-pad text-center">
+            <div style="position:relative;height:10rem;border-radius:1rem;overflow:hidden;margin:0 auto;max-width:28rem">
+              <img src="${store.image}" style="width:100%;height:100%;object-fit:cover;filter:grayscale(1)" />
+              <div style="position:absolute;inset:0;background:rgba(0,0,0,.55);display:grid;place-items:center"><span class="badge badge-closed">Closed</span></div>
+            </div>
+            <h1 class="mt-4">${store.name} is closed right now</h1>
+            <p class="muted">Usual hours: ${UI.time12(store.openTime)} – ${UI.time12(store.closeTime)}</p>
+            <a class="btn btn-primary mt-3" href="stores.html">See other coffee shops</a>
+          </div>`
+        document.getElementById('trayBar').innerHTML = ''
+        return
+      }
+
+      const products = BH.productsOf(store.id)
+      const cats = store.categories.filter((c) => products.some((p) => p.category === c.id))
+      const visible = products.filter((p) => category === 'all' || p.category === category)
+
+      document.getElementById('root').innerHTML = `
+        <div class="menu-hero">
+          <img src="${store.image}" alt="${store.name}" />
+          <div class="shade"></div>
+          <div class="info">
+            <a class="text-sm" href="stores.html" style="color:#fff;opacity:.9">← All shops</a>
+            <h1>${store.name}</h1>
+            <div class="text-sm" style="opacity:.9">${store.address} · ${UI.time12(store.openTime)} – ${UI.time12(store.closeTime)}</div>
+          </div>
+        </div>
+        <div class="container" style="padding-top:1rem;padding-bottom:6rem">
+          <p class="muted text-sm">${store.description}</p>
+          <div class="filters">
+            <button class="chip ${category === 'all' ? 'active' : ''}" data-c="all">Everything</button>
+            ${cats.map((c) => `<button class="chip ${category === c.id ? 'active' : ''}" data-c="${c.id}">${c.name}</button>`).join('')}
+          </div>
+          <div class="product-list">
+            ${visible.map((p) => `
+              <div class="product" data-id="${p.id}" style="${p.available ? '' : 'opacity:.55'}">
+                <img src="${p.image}" alt="${p.name}" />
+                <div style="display:flex;flex-direction:column;min-width:0;flex:1">
+                  <h3>${p.name}</h3>
+                  <p>${p.description}</p>
+                  <div class="row">
+                    <span class="price">${p.sizes.length ? 'from ' : ''}${UI.peso(p.price)}</span>
+                    ${p.available
+                      ? `<button class="btn btn-primary btn-sm add-btn" data-id="${p.id}">+ Add</button>`
+                      : `<span class="text-xs muted">Sold out</span>`}
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>`
+
+      document.querySelectorAll('.chip').forEach((b) => b.addEventListener('click', () => { category = b.dataset.c; render() }))
+      document.querySelectorAll('.product').forEach((el) => el.addEventListener('click', (e) => {
+        if (e.target.closest('.add-btn')) return
+        const p = products.find((x) => x.id === el.dataset.id)
+        if (p?.available) openProduct(p)
+      }))
+      document.querySelectorAll('.add-btn').forEach((b) => b.addEventListener('click', (e) => {
+        e.stopPropagation()
+        const p = products.find((x) => x.id === b.dataset.id)
+        BH.addToTray(user.id, p, 1, '')
+        UI.toast(`Added 1× ${p.name} to your tray`)
+        renderTray()
+      }))
+      renderTray()
+    }
+
+    function renderTray() {
+      const { count, total } = trayInfo()
+      document.getElementById('trayBar').innerHTML = count
+        ? `<a class="tray-bar" href="cart.html"><span>${count} ${count === 1 ? 'item' : 'items'} · ${UI.peso(total)}</span><span>View tray →</span></a>`
+        : ''
+    }
+
+    function openProduct(p) {
+      selected = p
+      qty = 1
+      size = p.sizes[0]?.name
+      addOns = []
+      note = ''
+      drawModal()
+    }
+
+    function drawModal() {
+      if (!selected) { document.getElementById('modal').innerHTML = ''; return }
+      const unit = BH.unitPrice(selected, size, addOns)
+      document.getElementById('modal').innerHTML = `
+        <div class="modal-backdrop" id="backdrop">
+          <div class="modal">
+            <img class="hero" src="${selected.image}" alt="${selected.name}" />
+            <div class="modal-body">
+              <div>
+                <h2 class="font-serif" style="margin:0;font-size:1.6rem">${selected.name}</h2>
+                <p class="muted text-sm">${selected.description}</p>
+                <p class="font-bold" style="color:var(--primary);font-size:1.15rem">${UI.peso(unit)}</p>
+              </div>
+              ${selected.sizes.length ? `
+                <div>
+                  <p class="font-bold mb-2">Size</p>
+                  <div class="size-grid">
+                    ${selected.sizes.map((s) => `
+                      <button type="button" class="size-opt ${size === s.name ? 'active' : ''}" data-size="${s.name}">
+                        <strong>${s.name}</strong><div class="text-xs muted">${s.priceDelta > 0 ? '+' + UI.peso(s.priceDelta) : 'No extra charge'}</div>
+                      </button>`).join('')}
+                  </div>
+                </div>` : ''}
+              ${selected.addOns.length ? `
+                <div>
+                  <p class="font-bold mb-2">Add-ons <span class="muted font-normal">(optional)</span></p>
+                  <div class="flex gap-2" style="flex-wrap:wrap">
+                    ${selected.addOns.map((a) => `
+                      <button type="button" class="addon-opt ${addOns.includes(a.name) ? 'active' : ''}" data-addon="${a.name}">
+                        ${a.name} <span class="muted">+${UI.peso(a.price)}</span>
+                      </button>`).join('')}
+                  </div>
+                </div>` : ''}
+              <div class="flex-between">
+                <span class="font-bold">How many?</span>
+                <div class="qty">
+                  <button type="button" id="minus">−</button>
+                  <strong>${qty}</strong>
+                  <button type="button" id="plus">+</button>
+                </div>
+              </div>
+              <div class="field">
+                <label>Special requests <span class="muted">(optional)</span></label>
+                <textarea class="textarea" id="note" placeholder="Special requests">${note}</textarea>
+              </div>
+              <button class="btn btn-primary btn-lg w-full" id="confirmAdd">Add to tray · ${UI.peso(unit * qty)}</button>
+            </div>
+          </div>
+        </div>`
+
+      document.getElementById('backdrop').addEventListener('click', (e) => { if (e.target.id === 'backdrop') { selected = null; drawModal() } })
+      document.querySelectorAll('.size-opt').forEach((b) => b.addEventListener('click', () => { size = b.dataset.size; drawModal() }))
+      document.querySelectorAll('.addon-opt').forEach((b) => b.addEventListener('click', () => {
+        const name = b.dataset.addon
+        addOns = addOns.includes(name) ? addOns.filter((x) => x !== name) : [...addOns, name]
+        drawModal()
+      }))
+      document.getElementById('minus').onclick = () => { qty = Math.max(1, qty - 1); drawModal() }
+      document.getElementById('plus').onclick = () => { qty = Math.min(99, qty + 1); drawModal() }
+      document.getElementById('note').oninput = (e) => { note = e.target.value }
+      document.getElementById('confirmAdd').onclick = () => {
+        BH.addToTray(user.id, selected, qty, note, { size, addOns })
+        UI.toast(`Added ${qty}× ${selected.name} to your tray`)
+        selected = null
+        drawModal()
+        renderTray()
+      }
+    }
+
+    boot()
+  </script>
+</body>
+</html>

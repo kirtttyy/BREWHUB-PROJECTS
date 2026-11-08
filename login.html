@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sign in · BrewHub</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="auth-shell">
+    <div class="auth-card">
+      <a class="brand" href="index.html"><span class="brand-mark" id="brandIcon"></span>BrewHub</a>
+      <h1>Welcome back</h1>
+      <p class="sub">Sign in with your phone number to continue.</p>
+
+      <form id="loginForm" class="stack">
+        <div class="field">
+          <label for="phone">Phone number</label>
+          <input class="input" id="phone" type="tel" placeholder="09XX XXX XXXX" required autocomplete="tel" />
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input class="input" id="password" type="password" placeholder="Password" required autocomplete="current-password" />
+        </div>
+        <div id="error" class="error-box hidden"></div>
+        <button class="btn btn-primary btn-lg w-full" type="submit">Sign in</button>
+      </form>
+      <p class="text-center text-sm muted mt-3">
+        New here? <a href="register.html" style="font-weight:600;color:var(--primary)">Create an account</a>
+      </p>
+      <p class="text-center text-sm muted mt-2"><a href="index.html">Back to home</a></p>
+    </div>
+  </div>
+
+  <script src="js/db.js"></script>
+  <script src="js/ui.js"></script>
+  <script>
+    async function boot() {
+      await BH.init()
+      UI.guestOnly()
+      document.getElementById('brandIcon').innerHTML = UI.svg('coffee')
+
+      document.getElementById('loginForm').addEventListener('submit', (e) => {
+        e.preventDefault()
+        const error = document.getElementById('error')
+        try {
+          const user = BH.signIn(document.getElementById('phone').value, document.getElementById('password').value)
+          location.href = BH.homeFor(user)
+        } catch (err) {
+          error.textContent = err.message
+          error.classList.remove('hidden')
+        }
+      })
+    }
+    boot()
+  </script>
+</body>
+</html>

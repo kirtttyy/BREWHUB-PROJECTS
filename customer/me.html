@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Me · BrewHub</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+  <header class="app-top"><div class="app-top-inner"><div id="brand"></div></div></header>
+  <main class="page-pad"><div class="container-sm" id="root"></div></main>
+  <div id="nav"></div>
+
+  <script src="../js/db.js"></script>
+  <script src="../js/ui.js"></script>
+  <script>
+    async function boot() {
+      await BH.init()
+      const user = UI.requireUser(['customer'])
+      if (!user) return
+      document.getElementById('brand').innerHTML = UI.brandHtml()
+      document.getElementById('nav').innerHTML = UI.customerNav('me')
+
+      const store = BH.storeById('s-1')
+      const points = BH.pointsBalance(user.id, 's-1')
+      const stamps = BH.stampsBalance(user.id, 's-1')
+
+      document.getElementById('root').innerHTML = `
+        <div class="card" style="padding:1.25rem;background:linear-gradient(135deg,var(--primary),#6b4423);color:white;border:0">
+          <p class="text-sm" style="opacity:.85;margin:0">Signed in as</p>
+          <h1 class="font-serif" style="margin:.2rem 0 .8rem;font-size:1.8rem">${user.name}</h1>
+          <div class="flex gap-3">
+            <div><div style="font-size:1.4rem;font-weight:800">${points}</div><div class="text-xs" style="opacity:.85">Points at ${store.name}</div></div>
+            <div><div style="font-size:1.4rem;font-weight:800">${stamps}/${store.loyalty.stampsRequired}</div><div class="text-xs" style="opacity:.85">Stamps</div></div>
+          </div>
+        </div>
+        <div class="card" style="padding:0;margin-top:1rem;overflow:hidden">
+          <a href="orders.html" style="display:block;padding:1rem;border-bottom:1px solid var(--border)">My orders</a>
+          <a href="stores.html" style="display:block;padding:1rem;border-bottom:1px solid var(--border)">Browse shops</a>
+          <button id="export" style="display:block;width:100%;text-align:left;padding:1rem;border:0;background:transparent;border-bottom:1px solid var(--border);cursor:pointer">Download JSON backup</button>
+          <button id="reset" style="display:block;width:100%;text-align:left;padding:1rem;border:0;background:transparent;border-bottom:1px solid var(--border);cursor:pointer">Reset demo data</button>
+          <button id="out" style="display:block;width:100%;text-align:left;padding:1rem;border:0;background:transparent;color:var(--destructive);cursor:pointer;font-weight:700">Sign out</button>
+        </div>
+      `
+      document.getElementById('out').onclick = () => { BH.signOut(); location.href = '../index.html' }
+      document.getElementById('export').onclick = () => {
+        BH.exportJson()
+        UI.toast('JSON backup downloaded.')
+      }
+      document.getElementById('reset').onclick = () => {
+        if (confirm('Reset all demo data on this browser?')) { BH.reset(); location.href = '../index.html' }
+      }
+    }
+    boot()
+  </script>
+</body>
+</html>

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tray · BrewHub</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+  <header class="app-top"><div class="app-top-inner"><div id="brand"></div></div></header>
+  <main class="page-pad"><div class="container-md" id="root"></div></main>
+  <div id="nav"></div>
+
+  <script src="../js/db.js"></script>
+  <script src="../js/ui.js"></script>
+  <script>
+    let user, codes = {}, name = ''
+
+    async function boot() {
+      await BH.init()
+      user = UI.requireUser(['customer'])
+      if (!user) return
+      name = user.name
+      document.getElementById('brand').innerHTML = UI.brandHtml()
+      document.getElementById('nav').innerHTML = UI.customerNav('cart')
+      render()
+    }
+
+    function render() {
+      const tray = BH.trayOf(user.id)
+      if (!tray.length) {
+        document.getElementById('root').innerHTML = `
+          <h1 class="font-serif" style="font-size:2rem">Your tray</h1>
+          <div class="card" style="padding:2rem;text-align:center;margin-top:1rem">
+            <p class="font-bold">Nothing here yet</p>
+            <p class="muted text-sm">Browse a shop and add drinks to get your QR.</p>
+            <a class="btn btn-primary mt-3" href="stores.html">Find a coffee shop</a>
+          </div>`
+        return
+      }
+
+      const storeIds = [...new Set(tray.map((l) => l.storeId))]
+      let html = `<h1 class="font-serif" style="font-size:2rem;margin:0 0 1rem">Your tray</h1>`
+
+      for (const storeId of storeIds) {
+        const store = BH.storeById(storeId)
+        const lines = tray.filter((l) => l.storeId === storeId)
+        const items = lines.map((l) => {
+          const p = BH.db.products.find((x) => x.id === l.productId)
+          return { productId: p.id, category: p.category, price: BH.unitPrice(p, l.size, l.addOns || []), quantity: l.quantity, product: p, line: l }
+        })
+        const quote = BH.applyPromo(storeId, items, codes[storeId])
+
+        html += `<section class="card" style="padding:1rem;margin-bottom:1rem">
+          <div class="flex-between mb-2">
+            <div>
+              <h2 style="margin:0;font-size:1.15rem;font-family:var(--font-sans)">${store.name}</h2>
+              <p class="text-xs muted" style="margin:0">${store.acceptingOrders ? 'Open' : 'Closed'} · ${store.address}</p>
+            </div>
+          </div>
+          ${items.map(({ product, line }) => `
+            <div class="line">
+              <img src="${product.image}" alt="" />
+              <div style="flex:1;min-width:0">
+                <div class="font-bold">${product.name}</div>
+                <div class="text-xs muted">${[line.size, ...(line.addOns || [])].filter(Boolean).join(' · ') || 'Standard'}</div>
+                <div class="text-sm">${UI.peso(BH.unitPrice(product, line.size, line.addOns || []))}</div>
+              </div>
+              <div class="qty">
+                <button data-id="${line.id}" data-q="${line.quantity - 1}">−</button>
+                <strong>${line.quantity}</strong>
+                <button data-id="${line.id}" data-q="${line.quantity + 1}">+</button>
+              </div>
+            </div>`).join('')}
+          <div class="field mt-3">
+            <label>Promo code</label>
+            <div class="flex gap-2">
+              <input class="input" id="code-${storeId}" placeholder="Promo code" value="${codes[storeId] || ''}" />
+              <button class="btn btn-outline apply-code" data-store="${storeId}">Apply</button>
+            </div>
+            ${quote.error ? `<p class="text-xs" style="color:var(--destructive)">${quote.error}</p>` : quote.discount ? `<p class="text-xs" style="color:#059669">${quote.promoLabel} · you save ${UI.peso(quote.discount)}</p>` : ''}
+          </div>
+          <div class="stack mt-3 text-sm">
+            <div class="flex-between"><span class="muted">Subtotal</span><span>${UI.peso(quote.subtotal)}</span></div>
+            ${quote.discount ? `<div class="flex-between"><span class="muted">Discount</span><span style="color:#059669">−${UI.peso(quote.discount)}</span></div>` : ''}
+            <div class="flex-between font-bold" style="font-size:1.05rem"><span>Total</span><span>${UI.peso(quote.total)}</span></div>
+          </div>
+        </section>`
+      }
+
+      html += `
+        <div class="field mb-3">
+          <label>Name for your order</label>
+          <input class="input" id="orderName" placeholder="Name for your order" value="${name}" />
+        </div>
+        <button class="btn btn-primary btn-lg w-full" id="checkout">Get my QR code</button>
+        <p class="text-xs muted text-center mt-2">No payment yet. Show the QR to the cashier at the counter.</p>`
+
+      document.getElementById('root').innerHTML = html
+
+      document.querySelectorAll('.qty button').forEach((b) => b.addEventListener('click', () => {
+        BH.setTrayQty(user.id, b.dataset.id, Number(b.dataset.q))
+        render()
+      }))
+      document.querySelectorAll('.apply-code').forEach((b) => b.addEventListener('click', () => {
+        codes[b.dataset.store] = document.getElementById(`code-${b.dataset.store}`).value
+        // stash on lines for createOrders
+        BH.trayOf(user.id).filter((l) => l.storeId === b.dataset.store).forEach((l) => { l._code = codes[b.dataset.store] })
+        BH.save()
+        render()
+      }))
+      document.getElementById('orderName').oninput = (e) => { name = e.target.value }
+      document.getElementById('checkout').onclick = () => {
+        try {
+          Object.entries(codes).forEach(([storeId, code]) => {
+            BH.trayOf(user.id).filter((l) => l.storeId === storeId).forEach((l) => { l._code = code })
+          })
+          BH.save()
+          const created = BH.createOrdersFromTray(user.id, name)
+          location.href = `order.html?code=${created[0]}`
+        } catch (err) {
+          UI.toast(err.message)
+        }
+      }
+    }
+
+    boot()
+  </script>
+</body>
+</html>

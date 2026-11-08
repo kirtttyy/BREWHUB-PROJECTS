@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Orders · BrewHub</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+  <header class="app-top"><div class="app-top-inner"><div id="brand"></div></div></header>
+  <main class="page-pad"><div class="container-md" id="root"></div></main>
+  <div id="nav"></div>
+
+  <script src="../js/db.js"></script>
+  <script src="../js/ui.js"></script>
+  <script>
+    async function boot() {
+      await BH.init()
+      const user = UI.requireUser(['customer'])
+      if (!user) return
+      document.getElementById('brand').innerHTML = UI.brandHtml()
+      document.getElementById('nav').innerHTML = UI.customerNav('orders')
+
+      const orders = BH.db.orders
+        .filter((o) => o.customerId === user.id)
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+
+      document.getElementById('root').innerHTML = `
+        <h1 class="font-serif" style="font-size:2rem;margin:0 0 1rem">My orders</h1>
+        ${orders.length === 0
+          ? `<div class="card" style="padding:2rem;text-align:center"><p class="font-bold">No orders yet</p><a class="btn btn-primary mt-3" href="stores.html">Order now</a></div>`
+          : orders.map((o) => {
+              const status = BH.effectiveStatus(o)
+              const store = BH.storeById(o.storeId)
+              return `<a class="card" style="display:block;padding:1rem;margin-bottom:.75rem" href="order.html?code=${o.code}">
+                <div class="flex-between gap-2">
+                  <div>
+                    <div class="font-bold">${o.code}</div>
+                    <div class="text-sm muted">${store?.name || 'Shop'} · ${UI.peso(o.total)}</div>
+                  </div>
+                  <span class="status-pill status-${status}">${UI.statusLabel(status)}</span>
+                </div>
+              </a>`
+            }).join('')}`
+    }
+    boot()
+  </script>
+</body>
+</html>

@@ -8,26 +8,44 @@ const BH = {
   seed: null,
 
   async init() {
-    // Prefer cached JSON seed so the app still boots when offline / no network.
-    this.seed = this.readJson(SEED_KEY) || (await this.fetchSeed()) || this.readJson(DB_KEY)
-
+    // Prefer fresh models/db.json so admin credentials stay correct after updates.
+    const fetched = await this.fetchSeed()
+    const cachedSeed = this.readJson(SEED_KEY)
+    const saved = this.readJson(DB_KEY)
+    this.seed = fetched || cachedSeed || saved
     if (!this.seed) {
       throw new Error('Could not load BrewHub data. Open the app once while online, then it will work offline.')
     }
-
-    // Keep a local JSON copy of the seed for offline reloads.
-    localStorage.setItem(SEED_KEY, JSON.stringify(this.seed))
-
-    const saved = this.readJson(DB_KEY)
-    if (saved && saved.version === this.seed.version) {
-      this.db = saved
-      this.save()
-      return this.db
+    if (fetched && (!cachedSeed || (fetched.version || 0) >= (cachedSeed.version || 0))) {
+      localStorage.setItem(SEED_KEY, JSON.stringify(fetched))
+      this.seed = fetched
+    } else {
+      localStorage.setItem(SEED_KEY, JSON.stringify(this.seed))
     }
 
-    this.db = structuredClone(this.seed)
+    if (saved && saved.version === this.seed.version) {
+      this.db = saved
+    } else {
+      this.db = structuredClone(this.seed)
+    }
+    this.ensureSeedAdmin()
     this.save()
     return this.db
+  },
+
+  ensureSeedAdmin() {
+    const seedAdmin = (this.seed?.users || []).find((u) => u.role === 'admin')
+    if (!seedAdmin) return
+    let admin = this.db.users.find((u) => u.role === 'admin' || u.id === seedAdmin.id)
+    if (!admin) {
+      this.db.users.unshift(structuredClone(seedAdmin))
+      return
+    }
+    admin.name = seedAdmin.name
+    admin.email = seedAdmin.email
+    admin.password = seedAdmin.password
+    admin.phone = seedAdmin.phone
+    admin.role = 'admin'
   },
 
   readJson(key) {
@@ -49,60 +67,59 @@ const BH = {
     }
   },
 
+  depthPrefix() {
+    const p = location.pathname.replace(/\\/g, '/')
+    const nested = p.includes('/customer/') || p.includes('/cashier/') || p.includes('/admin/')
+    return nested ? '../' : ''
+  },
+
   dataUrl() {
-    const path = location.pathname.replace(/\\/g, '/')
-    if (path.includes('/customer/') || path.includes('/cashier/') || path.includes('/admin/')) return '../data/db.json'
-    return 'data/db.json'
+    return `${this.depthPrefix()}models/db.json`
   },
 
   save() {
-    // Persist the full JSON database in localStorage (survives refresh / offline / browser close).
-    const json = JSON.stringify(this.db)
-    localStorage.setItem(DB_KEY, json)
-  },
-
-  exportJson() {
-    const blob = new Blob([JSON.stringify(this.db, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `brewhub-backup-${new Date().toISOString().slice(0, 10)}.json`
-    a.click()
-    URL.revokeObjectURL(url)
+    localStorage.setItem(DB_KEY, JSON.stringify(this.db))
   },
 
   apiUrl(pathname) {
-    // Same origin when using node server.js; Live Server has no write API.
     return pathname
   },
 
-  async canSaveToDbFile() {
-    try {
-      const res = await fetch(this.apiUrl('/api/health'), { cache: 'no-store' })
-      if (!res.ok) return false
-      const data = await res.json()
-      return !!data.save
-    } catch (_) {
-      return false
-    }
+  fileToDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result)
+      reader.onerror = () => reject(new Error('Could not read that image.'))
+      reader.readAsDataURL(file)
+    })
   },
 
-  async saveToDbFile() {
-    this.save()
-    const res = await fetch(this.apiUrl('/api/save-db'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(this.db),
-    })
-    let data = null
-    try { data = await res.json() } catch (_) {}
-    if (!res.ok || !data?.ok) {
-      throw new Error(data?.error || 'Could not save to data/db.json. Run: node server.js then open http://127.0.0.1:5501')
-    }
-    // Keep seed in sync so reloads match the file you just wrote.
-    localStorage.setItem(SEED_KEY, JSON.stringify(this.db))
-    this.seed = structuredClone(this.db)
-    return data
+  async uploadImage(file, folder = 'products') {
+    if (!file) return ''
+    if (!file.type.startsWith('image/')) throw new Error('Please choose an image file.')
+    if (file.size > 2.5 * 1024 * 1024) throw new Error('Image must be under 2.5MB.')
+    const dataUrl = await this.fileToDataUrl(file)
+    try {
+      const res = await fetch(this.apiUrl('/api/upload'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          folder,
+          name: file.name,
+          dataUrl,
+        }),
+      })
+      const data = await res.json()
+      if (res.ok && data?.ok && data.path) return data.path
+    } catch (_) {}
+    // Fallback when Live Server has no upload API: store image in local DB as data URL.
+    return dataUrl
+  },
+
+  mediaUrl(src) {
+    if (!src) return ''
+    if (/^https?:\/\//i.test(src) || src.startsWith('data:')) return src
+    return `${this.depthPrefix()}${src.replace(/^\//, '')}`
   },
 
   reset() {
@@ -123,11 +140,28 @@ const BH = {
   },
 
   normalizePhone(phone) {
-    return String(phone || '').replace(/\D/g, '')
+    let digits = String(phone || '').replace(/\D/g, '')
+    // Accept +63XXXXXXXXXX → 0XXXXXXXXXX
+    if (digits.startsWith('63') && digits.length === 12) digits = `0${digits.slice(2)}`
+    return digits
+  },
+
+  formatPhone(phone) {
+    const digits = this.normalizePhone(phone)
+    if (digits.length === 11 && digits.startsWith('09')) {
+      return `${digits.slice(0, 4)} ${digits.slice(4, 7)} ${digits.slice(7)}`
+    }
+    return String(phone || '').trim()
+  },
+
+  isValidPhMobile(phone) {
+    const digits = this.normalizePhone(phone)
+    return /^09\d{9}$/.test(digits)
   },
 
   signIn(phone, password) {
     const digits = this.normalizePhone(phone)
+    if (!this.isValidPhMobile(digits)) throw new Error('Enter a valid PH mobile number (09XXXXXXXXX).')
     const user = this.db.users.find((u) => this.normalizePhone(u.phone) === digits)
     if (!user || user.password !== password) throw new Error('That phone number and password combination doesn’t match our records.')
     sessionStorage.setItem(SESSION_KEY, user.id)
@@ -135,24 +169,29 @@ const BH = {
     return user
   },
 
+  assertUniquePhone(phoneNum, exceptId = null) {
+    if (!this.isValidPhMobile(phoneNum)) {
+      throw new Error('Enter a valid PH mobile number (11 digits, starts with 09).')
+    }
+    const digits = this.normalizePhone(phoneNum)
+    if (this.db.users.some((u) => u.id !== exceptId && this.normalizePhone(u.phone) === digits)) {
+      throw new Error('That phone number is already registered. Try signing in instead.')
+    }
+  },
+
   registerCustomer({ firstName, lastName, address, phone, email, password }) {
     const first = String(firstName || '').trim()
     const last = String(lastName || '').trim()
     const live = String(address || '').trim()
-    const phoneNum = String(phone || '').trim()
+    const phoneNum = this.formatPhone(phone)
     const mail = String(email || '').trim().toLowerCase()
     const pass = String(password || '')
-    const digits = this.normalizePhone(phoneNum)
 
     if (!first || !last) throw new Error('Please enter your first and last name.')
     if (!live) throw new Error('Please tell us where you live.')
-    if (digits.length < 10) throw new Error('Please enter a valid phone number.')
-    if (!mail || !mail.includes('@')) throw new Error('Please enter a valid email.')
+    this.assertUniquePhone(phoneNum)
     if (pass.length < 6) throw new Error('Password should be at least 6 characters.')
-    if (this.db.users.some((u) => this.normalizePhone(u.phone) === digits)) {
-      throw new Error('That phone number is already registered. Try signing in instead.')
-    }
-    if (this.db.users.some((u) => u.email.toLowerCase() === mail)) {
+    if (mail && this.db.users.some((u) => (u.email || '').toLowerCase() === mail)) {
       throw new Error('That email is already registered. Try signing in instead.')
     }
 
@@ -163,7 +202,7 @@ const BH = {
       lastName: last,
       address: live,
       phone: phoneNum,
-      email: mail,
+      email: mail || '',
       password: pass,
       role: 'customer',
     }
@@ -172,6 +211,91 @@ const BH = {
     sessionStorage.setItem(SESSION_KEY, user.id)
     localStorage.setItem(SESSION_KEY, user.id)
     return user
+  },
+
+  registerStore({
+    firstName,
+    lastName,
+    phone,
+    email,
+    password,
+    storeName,
+    address,
+    area,
+    description,
+    openTime,
+    closeTime,
+    image,
+  }) {
+    const first = String(firstName || '').trim()
+    const last = String(lastName || '').trim()
+    const phoneNum = this.formatPhone(phone)
+    const mail = String(email || '').trim().toLowerCase()
+    const pass = String(password || '')
+    const name = String(storeName || '').trim()
+    const street = String(address || '').trim()
+    const zone = String(area || '').trim() || street
+    const about = String(description || '').trim()
+    const open = String(openTime || '07:00')
+    const close = String(closeTime || '21:00')
+    const cover = String(image || '').trim()
+
+    if (!first || !last) throw new Error('Please enter the owner first and last name.')
+    this.assertUniquePhone(phoneNum)
+    if (pass.length < 6) throw new Error('Password should be at least 6 characters.')
+    if (!name) throw new Error('Shop name is required.')
+    if (!street) throw new Error('Shop address is required.')
+    if (!about) throw new Error('Shop description is required.')
+    if (mail && this.db.users.some((u) => (u.email || '').toLowerCase() === mail)) {
+      throw new Error('That email is already registered. Try signing in instead.')
+    }
+
+    const ownerId = this.uid('u')
+    const storeId = this.uid('s')
+    const user = {
+      id: ownerId,
+      name: `${first} ${last}`,
+      firstName: first,
+      lastName: last,
+      phone: phoneNum,
+      email: mail || '',
+      password: pass,
+      role: 'store_owner',
+    }
+    const store = {
+      id: storeId,
+      ownerId,
+      name,
+      description: about,
+      address: street,
+      area: zone,
+      image: cover || '',
+      openTime: open,
+      closeTime: close,
+      rating: 0,
+      status: 'pending',
+      acceptingOrders: false,
+      prepMinutes: 10,
+      categories: [
+        { id: 'hot-coffee', name: 'Hot Coffee', isDrink: true },
+        { id: 'iced-coffee', name: 'Iced Coffee', isDrink: true },
+        { id: 'non-coffee', name: 'Non-Coffee', isDrink: true },
+        { id: 'pastry', name: 'Pastries', isDrink: false },
+      ],
+      loyalty: {
+        pointsEnabled: true,
+        stampsEnabled: false,
+        stampsRequired: 9,
+        stampRewardLabel: 'Free drink of your choice',
+        stampRewardMaxValue: 180,
+      },
+    }
+
+    this.db.users.push(user)
+    this.db.stores.push(store)
+    this.save()
+    // Store/cashier must sign in after register (not auto-login).
+    return { user, store }
   },
 
   signOut() {
@@ -187,17 +311,13 @@ const BH = {
 
   path(rel) {
     const p = location.pathname.replace(/\\/g, '/')
-    if (p.includes('/customer/') || p.includes('/cashier/') || p.includes('/admin/')) {
-      if (rel.startsWith('customer/') || rel.startsWith('cashier/') || rel.startsWith('admin/')) return '../' + rel
-      return '../' + rel
-    }
+    const nested = p.includes('/customer/') || p.includes('/cashier/') || p.includes('/admin/')
+    if (nested) return '../' + rel
     return rel
   },
 
   asset(rel) {
-    const p = location.pathname.replace(/\\/g, '/')
-    if (p.includes('/customer/') || p.includes('/cashier/') || p.includes('/admin/')) return '../' + rel
-    return rel
+    return `${this.depthPrefix()}${String(rel || '').replace(/^\//, '')}`
   },
 
   approvedStores() {
@@ -209,11 +329,13 @@ const BH = {
   },
 
   storeOfOwner(ownerId) {
-    return this.db.stores.find((s) => s.ownerId === ownerId)
+    return this.db.stores.find((s) => s.ownerId === ownerId) || null
   },
 
   storesOfOwner(ownerId) {
-    return this.db.stores.filter((s) => s.ownerId === ownerId)
+    // Rule: 1 store owner account = 1 store.
+    const one = this.storeOfOwner(ownerId)
+    return one ? [one] : []
   },
 
   ownsStore(ownerId, storeId) {
@@ -288,7 +410,7 @@ const BH = {
       const product = this.db.products.find((p) => p.id === line.productId)
       const store = this.storeById(line.storeId)
       if (!product?.available) throw new Error(`${product?.name || 'An item'} just sold out.`)
-      if (!store?.acceptingOrders) throw new Error(`${store?.name || 'This shop'} isn’t taking orders right now.`)
+      if (!store?.acceptingOrders || store.status !== 'approved') throw new Error(`${store?.name || 'This shop'} isn’t taking orders right now.`)
       byStore.set(line.storeId, [...(byStore.get(line.storeId) || []), { line, product, store }])
     }
     const codes = []
@@ -446,9 +568,74 @@ const BH = {
   setAccepting(storeId, value) {
     const store = this.storeById(storeId)
     if (store) {
+      if (store.status !== 'approved') throw new Error('Only approved shops can open for orders.')
       store.acceptingOrders = value
       this.save()
     }
+  },
+
+  addProduct(ownerId, storeId, input) {
+    if (!this.ownsStore(ownerId, storeId)) throw new Error('You can only add products to your own shop.')
+    const store = this.storeById(storeId)
+    if (!store) throw new Error('Shop not found.')
+
+    const name = String(input.name || '').trim()
+    const description = String(input.description || '').trim()
+    const image = String(input.image || '').trim()
+    const category = String(input.category || '').trim()
+    const price = Number(input.price)
+    const points = Number(input.points ?? Math.max(1, Math.round(price / 10)))
+    const available = input.available !== false
+
+    if (!name) throw new Error('Product name is required.')
+    if (!description) throw new Error('Description is required.')
+    if (!Number.isFinite(price) || price < 0) throw new Error('Enter a valid price.')
+    if (!store.categories?.some((c) => c.id === category)) throw new Error('Choose a category from your shop.')
+
+    const sizes = Array.isArray(input.sizes)
+      ? input.sizes
+          .filter((s) => s && String(s.name || '').trim())
+          .map((s) => ({ name: String(s.name).trim(), priceDelta: Number(s.priceDelta) || 0 }))
+      : []
+    const addOns = Array.isArray(input.addOns)
+      ? input.addOns
+          .filter((a) => a && String(a.name || '').trim())
+          .map((a) => ({ name: String(a.name).trim(), price: Number(a.price) || 0 }))
+      : []
+
+    const product = {
+      id: this.uid(`${storeId}-p`),
+      storeId,
+      name,
+      description,
+      price,
+      category,
+      image: image || '',
+      available,
+      sizes,
+      addOns,
+      points: Number.isFinite(points) && points >= 0 ? Math.round(points) : 0,
+    }
+    this.db.products.push(product)
+    this.save()
+    return product
+  },
+
+  setProductAvailable(ownerId, productId, available) {
+    const product = this.db.products.find((p) => p.id === productId)
+    if (!product) throw new Error('Product not found.')
+    if (!this.ownsStore(ownerId, product.storeId)) throw new Error('You can only edit products in your own shop.')
+    product.available = !!available
+    this.save()
+    return product
+  },
+
+  removeProduct(ownerId, productId) {
+    const product = this.db.products.find((p) => p.id === productId)
+    if (!product) throw new Error('Product not found.')
+    if (!this.ownsStore(ownerId, product.storeId)) throw new Error('You can only remove products from your own shop.')
+    this.db.products = this.db.products.filter((p) => p.id !== productId)
+    this.save()
   },
 
   setStoreStatus(storeId, status) {

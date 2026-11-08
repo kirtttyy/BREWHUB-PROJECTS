@@ -8,71 +8,128 @@
 </head>
 <body>
   <div class="auth-shell">
-    <div class="auth-card">
+    <div class="auth-card" style="width:min(520px,100%)">
       <a class="brand" href="index.html"><span class="brand-mark" id="brandIcon"></span>BrewHub</a>
       <h1>Create account</h1>
-      <p class="sub">Fill this in so shops know who’s ordering.</p>
+      <p class="sub">Register as a customer or as a coffee shop (1 shop = 1 account).</p>
 
-      <form id="registerForm" class="stack">
-        <div class="field">
-          <label for="lastName">Last name</label>
-          <input class="input" id="lastName" type="text" placeholder="Dela Cruz" required autocomplete="family-name" />
-        </div>
-        <div class="field">
-          <label for="firstName">First name</label>
-          <input class="input" id="firstName" type="text" placeholder="Juan" required autocomplete="given-name" />
-        </div>
-        <div class="field">
-          <label for="address">Where do you live?</label>
-          <input class="input" id="address" type="text" placeholder="Barangay, city" required autocomplete="street-address" />
-        </div>
-        <div class="field">
-          <label for="phone">Phone number</label>
-          <input class="input" id="phone" type="tel" placeholder="09XX XXX XXXX" required autocomplete="tel" />
-        </div>
-        <div class="field">
-          <label for="email">Email</label>
-          <input class="input" id="email" type="email" placeholder="you@email.com" required autocomplete="email" />
-        </div>
-        <div class="field">
-          <label for="password">Password</label>
-          <input class="input" id="password" type="password" placeholder="At least 6 characters" required minlength="6" autocomplete="new-password" />
-        </div>
-        <div id="error" class="error-box hidden"></div>
-        <button class="btn btn-primary btn-lg w-full" type="submit">Register</button>
+      <div class="admin-filters mb-3">
+        <button type="button" class="chip active" data-mode="customer">Customer</button>
+        <button type="button" class="chip" data-mode="store">Store / Cashier</button>
+      </div>
+
+      <form id="customerForm" class="stack">
+        <div class="field"><label for="cLast">Last name *</label><input class="input" id="cLast" required /></div>
+        <div class="field"><label for="cFirst">First name *</label><input class="input" id="cFirst" required /></div>
+        <div class="field"><label for="cAddress">Where do you live? *</label><input class="input" id="cAddress" required placeholder="Barangay, city" /></div>
+        <div class="field"><label for="cPhone">Phone number *</label><input class="input" id="cPhone" type="tel" inputmode="numeric" required placeholder="0917 123 4567" maxlength="13" /></div>
+        <div class="field"><label for="cEmail">Email (optional)</label><input class="input" id="cEmail" type="email" /></div>
+        <div class="field"><label for="cPass">Password *</label><input class="input" id="cPass" type="password" required minlength="6" /></div>
+        <div id="cError" class="error-box hidden"></div>
+        <button class="btn btn-primary btn-lg w-full" type="submit">Register as customer</button>
       </form>
+
+      <form id="storeForm" class="stack hidden">
+        <p class="text-sm muted" style="margin:0">Owner account</p>
+        <div class="field"><label for="sLast">Owner last name *</label><input class="input" id="sLast" required /></div>
+        <div class="field"><label for="sFirst">Owner first name *</label><input class="input" id="sFirst" required /></div>
+        <div class="field"><label for="sPhone">Phone number *</label><input class="input" id="sPhone" type="tel" inputmode="numeric" required placeholder="0917 123 4567" maxlength="13" /></div>
+        <div class="field"><label for="sEmail">Email (optional)</label><input class="input" id="sEmail" type="email" /></div>
+        <div class="field"><label for="sPass">Password *</label><input class="input" id="sPass" type="password" required minlength="6" /></div>
+
+        <p class="text-sm muted" style="margin:.5rem 0 0">Shop details (this account owns only this shop)</p>
+        <div class="field"><label for="shopName">Shop name *</label><input class="input" id="shopName" required /></div>
+        <div class="field"><label for="shopAddress">Shop address *</label><input class="input" id="shopAddress" required /></div>
+        <div class="field"><label for="shopArea">Area *</label><input class="input" id="shopArea" required placeholder="Lahug, IT Park…" /></div>
+        <div class="field"><label for="shopDesc">Description *</label><textarea class="textarea" id="shopDesc" required></textarea></div>
+        <div class="flex gap-2">
+          <div class="field" style="flex:1"><label for="openTime">Opens *</label><input class="input" id="openTime" type="time" value="07:00" required /></div>
+          <div class="field" style="flex:1"><label for="closeTime">Closes *</label><input class="input" id="closeTime" type="time" value="21:00" required /></div>
+        </div>
+        <div class="field">
+          <label for="shopImage">Shop image</label>
+          <input class="input" id="shopImage" type="file" accept="image/*" />
+          <p class="hint">Stored in images/stores when using node server.js (or saved in local data as fallback).</p>
+        </div>
+        <div id="sError" class="error-box hidden"></div>
+        <button class="btn btn-primary btn-lg w-full" type="submit">Register shop (pending admin approval)</button>
+      </form>
+
       <p class="text-center text-sm muted mt-3">
         Already have an account? <a href="login.html" style="font-weight:600;color:var(--primary)">Sign in</a>
       </p>
     </div>
   </div>
 
-  <script src="js/db.js"></script>
-  <script src="js/ui.js"></script>
+  <script src="models/db.js"></script>
+  <script src="utils/ui.js"></script>
+  <script src="controllers/auth.js"></script>
   <script>
     async function boot() {
       await BH.init()
       UI.guestOnly()
       document.getElementById('brandIcon').innerHTML = UI.svg('coffee')
 
-      document.getElementById('registerForm').addEventListener('submit', (e) => {
+      const customerForm = document.getElementById('customerForm')
+      const storeForm = document.getElementById('storeForm')
+      document.querySelectorAll('[data-mode]').forEach((chip) => {
+        chip.onclick = () => {
+          document.querySelectorAll('[data-mode]').forEach((c) => c.classList.remove('active'))
+          chip.classList.add('active')
+          const mode = chip.dataset.mode
+          customerForm.classList.toggle('hidden', mode !== 'customer')
+          storeForm.classList.toggle('hidden', mode !== 'store')
+        }
+      })
+
+      customerForm.onsubmit = async (e) => {
         e.preventDefault()
-        const error = document.getElementById('error')
+        const error = document.getElementById('cError')
+        error.classList.add('hidden')
         try {
-          const user = BH.registerCustomer({
-            lastName: document.getElementById('lastName').value,
-            firstName: document.getElementById('firstName').value,
-            address: document.getElementById('address').value,
-            phone: document.getElementById('phone').value,
-            email: document.getElementById('email').value,
-            password: document.getElementById('password').value,
+          await AuthController.registerCustomer({
+            lastName: document.getElementById('cLast').value,
+            firstName: document.getElementById('cFirst').value,
+            address: document.getElementById('cAddress').value,
+            phone: document.getElementById('cPhone').value,
+            email: document.getElementById('cEmail').value,
+            password: document.getElementById('cPass').value,
           })
-          location.href = BH.homeFor(user)
         } catch (err) {
           error.textContent = err.message
           error.classList.remove('hidden')
         }
-      })
+      }
+
+      storeForm.onsubmit = async (e) => {
+        e.preventDefault()
+        const error = document.getElementById('sError')
+        error.classList.add('hidden')
+        const btn = storeForm.querySelector('button[type=submit]')
+        btn.disabled = true
+        try {
+          const file = document.getElementById('shopImage').files[0]
+          const image = file ? await BH.uploadImage(file, 'stores') : ''
+          await AuthController.registerStore({
+            lastName: document.getElementById('sLast').value,
+            firstName: document.getElementById('sFirst').value,
+            phone: document.getElementById('sPhone').value,
+            email: document.getElementById('sEmail').value,
+            password: document.getElementById('sPass').value,
+            storeName: document.getElementById('shopName').value,
+            address: document.getElementById('shopAddress').value,
+            area: document.getElementById('shopArea').value,
+            description: document.getElementById('shopDesc').value,
+            openTime: document.getElementById('openTime').value,
+            closeTime: document.getElementById('closeTime').value,
+            image,
+          })
+        } catch (err) {
+          error.textContent = err.message
+          error.classList.remove('hidden')
+          btn.disabled = false
+        }
+      }
     }
     boot()
   </script>

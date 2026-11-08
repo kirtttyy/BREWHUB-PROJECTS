@@ -12,8 +12,8 @@
     <main class="cashier-main" id="root"></main>
   </div>
 
-  <script src="../js/db.js"></script>
-  <script src="../js/ui.js"></script>
+  <script src="../models/db.js"></script>
+  <script src="../utils/ui.js"></script>
   <script>
     async function boot() {
       await BH.init()
@@ -23,14 +23,20 @@
       document.getElementById('sidebar').innerHTML = UI.cashierSidebar('settings')
       document.getElementById('signOutBtn').onclick = () => { BH.signOut(); location.href = '../index.html' }
 
+      if (!store) {
+        document.getElementById('root').innerHTML = `<div class="card" style="padding:1.25rem"><p class="muted">No shop linked to this account.</p></div>`
+        return
+      }
+
       document.getElementById('root').innerHTML = `
         <div class="cashier-top">
           <div>
             <h1 class="font-serif" style="margin:0;font-size:2rem">Shop settings</h1>
-            <p class="muted text-sm" style="margin:.2rem 0 0">This is what customers see.</p>
+            <p class="muted text-sm" style="margin:.2rem 0 0">Status: ${store.status}</p>
           </div>
         </div>
 
+        ${store.status === 'approved' ? `
         <div class="open-toggle ${store.acceptingOrders ? 'on' : 'off'} mb-4">
           <div>
             <div class="font-bold">Your shop is ${store.acceptingOrders ? 'Open' : 'Closed'}</div>
@@ -39,9 +45,13 @@
               : 'Customers see your shop as Closed and can’t open it or order.'}</div>
           </div>
           <button class="switch ${store.acceptingOrders ? 'on' : ''}" id="toggle"></button>
-        </div>
+        </div>` : `
+        <div class="card mb-4" style="padding:1rem">
+          <div class="font-bold">Waiting for admin approval</div>
+          <div class="text-sm muted">You can manage products while pending. Open/Closed unlocks after approval.</div>
+        </div>`}
 
-        <div class="card" style="padding:1.2rem" class="stack">
+        <div class="card" style="padding:1.2rem">
           <div class="stack">
             <div class="field"><label>Shop name</label><input class="input" value="${store.name}" disabled /></div>
             <div class="field"><label>Street address</label><input class="input" value="${store.address}" disabled /></div>
@@ -50,26 +60,21 @@
               <div class="field" style="flex:1"><label>Opens at</label><input class="input" value="${store.openTime}" disabled /></div>
               <div class="field" style="flex:1"><label>Closes at</label><input class="input" value="${store.closeTime}" disabled /></div>
             </div>
-            <p class="text-xs muted">This HTML demo keeps shop details read-only except Open/Closed. Full editing is in the Next.js app.</p>
           </div>
-        </div>
-
-        <div class="card" style="padding:1.2rem;margin-top:1rem">
-          <p class="font-bold" style="margin:0 0 .5rem">Demo tools</p>
-          <button class="btn btn-outline" id="reset">Reset demo data</button>
         </div>
       `
 
-      document.getElementById('toggle').onclick = () => {
-        const next = !store.acceptingOrders
-        BH.setAccepting(store.id, next)
-        UI.toast(next ? 'Your shop is now Open. Customers can order.' : 'Your shop is now Closed. Customers can’t order until you open again.')
-        boot()
-      }
-      document.getElementById('reset').onclick = () => {
-        if (confirm('Reset all demo data on this browser?')) {
-          BH.reset()
-          location.href = '../index.html'
+      const toggle = document.getElementById('toggle')
+      if (toggle) {
+        toggle.onclick = () => {
+          try {
+            const next = !store.acceptingOrders
+            BH.setAccepting(store.id, next)
+            UI.toast(next ? 'Your shop is now Open.' : 'Your shop is now Closed.')
+            boot()
+          } catch (err) {
+            UI.toast(err.message)
+          }
         }
       }
     }

@@ -122,12 +122,13 @@ const UI = {
   cashierSidebar(active) {
     return this.shellSidebar({
       homeHref: 'cashier/index.html',
-      role: 'Cashier',
+      role: 'Store owner',
       active,
       links: [
         { id: 'home', href: 'cashier/index.html', icon: 'home', label: 'Dashboard' },
         { id: 'scan', href: 'cashier/scan.html', icon: 'scan', label: 'Scan' },
         { id: 'orders', href: 'cashier/orders.html', icon: 'list', label: 'Orders' },
+        { id: 'products', href: 'cashier/products.html', icon: 'bag', label: 'Products' },
         { id: 'settings', href: 'cashier/settings.html', icon: 'settings', label: 'Settings' },
       ],
     })

@@ -12,8 +12,8 @@
     <main class="cashier-main" id="root"></main>
   </div>
 
-  <script src="../js/db.js"></script>
-  <script src="../js/ui.js"></script>
+  <script src="../models/db.js"></script>
+  <script src="../utils/ui.js"></script>
   <script>
     async function boot() {
       await BH.init()
@@ -22,6 +22,10 @@
       const store = BH.storeOfOwner(user.id)
       document.getElementById('sidebar').innerHTML = UI.cashierSidebar('home')
       document.getElementById('signOutBtn').onclick = () => { BH.signOut(); location.href = '../index.html' }
+      if (!store) {
+        document.getElementById('root').innerHTML = `<div class="card" style="padding:1.25rem"><p class="font-bold">No shop linked</p><p class="muted text-sm">Register as a store first, then wait for admin approval.</p></div>`
+        return
+      }
 
       const orders = BH.db.orders.filter((o) => o.storeId === store.id)
       const waiting = orders.filter((o) => BH.effectiveStatus(o) === 'waiting_payment').length
@@ -33,18 +37,23 @@
         <div class="cashier-top">
           <div>
             <h1 class="font-serif" style="margin:0;font-size:2rem">${store.name}</h1>
-            <p class="muted text-sm" style="margin:.2rem 0 0">Cashier dashboard</p>
+            <p class="muted text-sm" style="margin:.2rem 0 0">Store owner dashboard · status: ${store.status}</p>
           </div>
           <a class="btn btn-primary" href="scan.html">${UI.svg('scan')} Scan QR</a>
         </div>
 
+        ${store.status !== 'approved' ? `
+          <div class="card mb-4" style="padding:1rem">
+            <div class="font-bold">Waiting for admin approval</div>
+            <div class="text-sm muted">Your shop stays hidden until an admin approves it. You can still prepare products.</div>
+          </div>` : `
         <div class="open-toggle ${store.acceptingOrders ? 'on' : 'off'} mb-4">
           <div>
             <div class="font-bold">Shop is ${store.acceptingOrders ? 'Open' : 'Closed'}</div>
             <div class="text-xs muted">${store.acceptingOrders ? 'Customers can open your shop and order.' : 'Customers see you as Closed and can’t open your shop.'}</div>
           </div>
           <button class="switch ${store.acceptingOrders ? 'on' : ''}" id="toggle" aria-label="Open or closed"></button>
-        </div>
+        </div>`}
 
         <div class="stat-grid mb-4">
           <div class="stat"><div class="label">Waiting to pay</div><div class="value">${waiting}</div></div>
@@ -53,20 +62,36 @@
           <div class="stat"><div class="label">Claimed today</div><div class="value">${claimedToday}</div></div>
         </div>
 
-        <a class="card" style="display:flex;justify-content:space-between;align-items:center;padding:1.1rem" href="scan.html">
-          <div>
-            <div class="font-bold">Scan a customer QR</div>
-            <div class="text-sm muted">Type the code if the camera isn’t available.</div>
-          </div>
-          <span>${UI.svg('arrow')}</span>
-        </a>
+        <div class="stack">
+          <a class="admin-link-card" href="scan.html">
+            <div>
+              <div class="font-bold">Scan a customer QR</div>
+              <div class="text-sm muted">Type the code if the camera isn’t available.</div>
+            </div>
+            <span>${UI.svg('arrow')}</span>
+          </a>
+          <a class="admin-link-card" href="products.html">
+            <div>
+              <div class="font-bold">Manage products</div>
+              <div class="text-sm muted">Add menu items for ${store.name} only.</div>
+            </div>
+            <span>${UI.svg('arrow')}</span>
+          </a>
+        </div>
       `
 
-      document.getElementById('toggle').onclick = () => {
-        const next = !store.acceptingOrders
-        BH.setAccepting(store.id, next)
-        UI.toast(next ? 'Your shop is now Open.' : 'Your shop is now Closed.')
-        boot()
+      const toggle = document.getElementById('toggle')
+      if (toggle) {
+        toggle.onclick = () => {
+          try {
+            const next = !store.acceptingOrders
+            BH.setAccepting(store.id, next)
+            UI.toast(next ? 'Your shop is now Open.' : 'Your shop is now Closed.')
+            boot()
+          } catch (err) {
+            UI.toast(err.message)
+          }
+        }
       }
     }
     boot()

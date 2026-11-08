@@ -1,0 +1,21 @@
+{
+  "version": 7,
+  "users": [
+    {
+      "id": "u-admin-1",
+      "name": "Admin",
+      "email": "admin@brewhub.local",
+      "password": "admin123",
+      "role": "admin",
+      "phone": "0917 000 0001"
+    }
+  ],
+  "stores": [],
+  "products": [],
+  "orders": [],
+  "trays": {},
+  "points": [],
+  "stamps": [],
+  "promos": [],
+  "vouchers": []
+}

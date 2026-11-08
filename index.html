@@ -48,13 +48,13 @@
         <h2 class="section-title">Coffee shops near you</h2>
         <p class="section-sub">Open shops first. Closed shops can’t be opened.</p>
         <div class="shop-grid" id="shopsGrid"></div>
-        <p class="text-center muted mt-4 text-sm">Sign in to order. Demo accounts are on the sign-in page.</p>
+        <p class="text-center muted mt-4 text-sm">Sign in or create an account to order ahead.</p>
       </div>
     </section>
   </main>
 
-  <script src="js/db.js"></script>
-  <script src="js/ui.js"></script>
+  <script src="models/db.js"></script>
+  <script src="utils/ui.js"></script>
   <script>
     async function boot() {
       await BH.init()
@@ -84,7 +84,7 @@
         return `
           <${open ? 'a' : 'div'} class="shop-card ${open ? 'open' : 'closed'}" ${open ? `href="login.html"` : ''}>
             <div class="cover">
-              <img src="${s.image}" alt="${s.name}" />
+              <img src="${BH.mediaUrl(s.image)}" alt="${s.name}" />
               ${open
                 ? `<span class="badge badge-open" style="position:absolute;left:.75rem;top:.75rem">● Open</span>`
                 : `<div class="closed-overlay"><strong>Closed</strong><span class="text-xs">Unavailable right now</span></div>`}

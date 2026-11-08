@@ -12,8 +12,8 @@
     <main class="cashier-main" id="root"></main>
   </div>
 
-  <script src="../js/db.js"></script>
-  <script src="../js/ui.js"></script>
+  <script src="../models/db.js"></script>
+  <script src="../utils/ui.js"></script>
   <script>
     async function boot() {
       await BH.init()
@@ -30,32 +30,13 @@
       const orders = BH.db.orders
       const activeOrders = orders.filter((o) => ['waiting_payment', 'preparing', 'ready'].includes(BH.effectiveStatus(o))).length
 
-      const canSave = await BH.canSaveToDbFile()
-
       document.getElementById('root').innerHTML = `
         <div class="cashier-top">
           <div>
             <h1 class="font-serif" style="margin:0;font-size:clamp(1.7rem,3vw,2.1rem)">Platform overview</h1>
             <p class="muted text-sm" style="margin:.35rem 0 0">Approve shops and keep BrewHub tidy.</p>
           </div>
-          <div class="flex gap-2" style="flex-wrap:wrap">
-            <button class="btn btn-outline" id="saveDbBtn" type="button">Save to db.json</button>
-            <a class="btn btn-primary" href="shops.html">${UI.svg('store')} Review shops</a>
-          </div>
-        </div>
-
-        <div class="admin-panel mb-4">
-          <div class="admin-panel-head">
-            <div>
-              <div class="font-bold">Save local data to JSON</div>
-              <div class="text-sm muted" id="saveDbHint">${
-                canSave
-                  ? 'Writes your current localStorage data into data/db.json on this computer.'
-                  : 'Open the app with node server.js (http://127.0.0.1:5501). Live Server cannot write files.'
-              }</div>
-            </div>
-            <span class="badge ${canSave ? 'badge-approved' : 'badge-pending'}">${canSave ? 'Server ready' : 'Server needed'}</span>
-          </div>
+          <a class="btn btn-primary" href="shops.html">${UI.svg('store')} Review shops</a>
         </div>
 
         <div class="stat-grid mb-4">
@@ -77,7 +58,7 @@
             ? `<p class="muted text-sm admin-empty">No shops waiting right now.</p>`
             : pending.map((s) => `
               <div class="admin-row shops">
-                <img class="admin-thumb" src="${s.image}" alt="" />
+                <img class="admin-thumb" src="${BH.mediaUrl(s.image)}" alt="" />
                 <div>
                   <div class="font-bold">${s.name}</div>
                   <div class="text-sm muted">${s.area} · ${BH.ownerName(s.ownerId)}</div>
@@ -95,25 +76,11 @@
         <a class="admin-link-card" href="users.html">
           <div>
             <div class="font-bold">Browse users</div>
-            <div class="text-sm muted">Customers, cashiers, and admins on the platform.</div>
+            <div class="text-sm muted">Customers, store owners, and admin accounts.</div>
           </div>
           <span>${UI.svg('arrow')}</span>
         </a>
       `
-
-      document.getElementById('saveDbBtn').onclick = async () => {
-        const btn = document.getElementById('saveDbBtn')
-        btn.disabled = true
-        try {
-          await BH.saveToDbFile()
-          UI.toast('Saved to data/db.json')
-          document.getElementById('saveDbHint').textContent = `Saved just now · data/db.json`
-        } catch (err) {
-          UI.toast(err.message)
-        } finally {
-          btn.disabled = false
-        }
-      }
 
       document.querySelectorAll('[data-approve]').forEach((btn) => {
         btn.onclick = () => {

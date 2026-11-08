@@ -11,12 +11,13 @@
     <div class="auth-card">
       <a class="brand" href="index.html"><span class="brand-mark" id="brandIcon"></span>BrewHub</a>
       <h1>Welcome back</h1>
-      <p class="sub">Sign in with your phone number to continue.</p>
+      <p class="sub" id="loginSub">Sign in with your phone number to continue.</p>
+      <div id="notice" class="demo-box hidden" style="color:var(--foreground)"></div>
 
       <form id="loginForm" class="stack">
         <div class="field">
           <label for="phone">Phone number</label>
-          <input class="input" id="phone" type="tel" placeholder="09XX XXX XXXX" required autocomplete="tel" />
+          <input class="input" id="phone" type="tel" inputmode="numeric" placeholder="0917 123 4567" maxlength="13" required autocomplete="tel" />
         </div>
         <div class="field">
           <label for="password">Password</label>
@@ -32,20 +33,27 @@
     </div>
   </div>
 
-  <script src="js/db.js"></script>
-  <script src="js/ui.js"></script>
+  <script src="models/db.js"></script>
+  <script src="utils/ui.js"></script>
+  <script src="controllers/auth.js"></script>
   <script>
     async function boot() {
       await BH.init()
       UI.guestOnly()
       document.getElementById('brandIcon').innerHTML = UI.svg('coffee')
 
-      document.getElementById('loginForm').addEventListener('submit', (e) => {
+      if (UI.qs('registered') === 'store') {
+        const notice = document.getElementById('notice')
+        notice.classList.remove('hidden')
+        notice.innerHTML = '<strong>Store registered.</strong> Sign in with your phone and password. Admin still needs to approve your shop before customers can see it.'
+        document.getElementById('loginSub').textContent = 'Sign in to open your cashier dashboard.'
+      }
+
+      document.getElementById('loginForm').addEventListener('submit', async (e) => {
         e.preventDefault()
         const error = document.getElementById('error')
         try {
-          const user = BH.signIn(document.getElementById('phone').value, document.getElementById('password').value)
-          location.href = BH.homeFor(user)
+          await AuthController.login(document.getElementById('phone').value, document.getElementById('password').value)
         } catch (err) {
           error.textContent = err.message
           error.classList.remove('hidden')

@@ -11,8 +11,8 @@
   <main class="page-pad"><div class="container-md" id="root"></div></main>
   <div id="nav"></div>
 
-  <script src="../js/db.js"></script>
-  <script src="../js/ui.js"></script>
+  <script src="../models/db.js"></script>
+  <script src="../utils/ui.js"></script>
   <script>
     let user, codes = {}, name = ''
 
@@ -60,7 +60,7 @@
           </div>
           ${items.map(({ product, line }) => `
             <div class="line">
-              <img src="${product.image}" alt="" />
+              <img src="${BH.mediaUrl(product.image)}" alt="" />
               <div style="flex:1;min-width:0">
                 <div class="font-bold">${product.name}</div>
                 <div class="text-xs muted">${[line.size, ...(line.addOns || [])].filter(Boolean).join(' · ') || 'Standard'}</div>

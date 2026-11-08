@@ -2,44 +2,12 @@
   "version": 2,
   "users": [
     {
-      "id": "u-admin-1",
-      "name": "BrewHub Admin",
-      "email": "admin@demo.com",
-      "password": "demo123",
-      "role": "admin",
-      "phone": "0917 000 0001"
-    },
-    {
       "id": "u-customer-1",
       "name": "Juan Dela Cruz",
       "email": "juan@demo.com",
       "password": "demo123",
       "role": "customer",
       "phone": "0917 123 4567"
-    },
-    {
-      "id": "u-customer-2",
-      "name": "Maria Santos",
-      "email": "maria@demo.com",
-      "password": "demo123",
-      "role": "customer",
-      "phone": "0918 555 1122"
-    },
-    {
-      "id": "u-owner-1",
-      "name": "Ana Reyes",
-      "email": "cashier@demo.com",
-      "password": "demo123",
-      "role": "store_owner",
-      "phone": "0920 111 2233"
-    },
-    {
-      "id": "u-owner-2",
-      "name": "Carlo Lim",
-      "email": "carlo@demo.com",
-      "password": "demo123",
-      "role": "store_owner",
-      "phone": "0921 444 5566"
     }
   ],
   "stores": [
